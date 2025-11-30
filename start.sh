@@ -1,8 +1,8 @@
 #!/bin/bash
 
-docker compose -f traefik.yaml start
-docker compose -f gitea.yaml start
-docker compose -f gitea-runner.yaml start
-docker compose -f mysql.yaml start
-docker compose -f verdaccio.yaml start
+docker compose -f ./docker/traefik.yaml start
+docker compose -f ./docker/gitea.yaml start
+docker compose -f ./docker/gitea-runner.yaml start
+docker compose -f ./docker/mysql.yaml start
+docker compose -f ./docker/verdaccio.yaml start
 

@@ -7,6 +7,9 @@ USERNAME=$(sed -n '3p' config/main | tr -d '\r\n')
 PASSWORD=$(sed -n '4p' config/main | tr -d '\r\n')
 MODULES=$(sed -n '5p' config/main | tr -d '\r\n')
 
+mkdir -p "dynamic/docker" "dynamic/frameworks"
+
+
 export GITEA_HOSTNAME=$DOMAIN
 export ENABLE_HTTPS=$ENABLE_HTTPS
 export MYSQL_ROOT_PASSWORD=$PASSWORD
@@ -23,8 +26,8 @@ fi
 
 # create various config and creation files
 # Start Traefik and Gitea using Docker Compose
-REGISTRY_PORT=$REGISTRY_PORT GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f traefik.yaml up -d --remove-orphans
-GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f gitea.yaml up -d
+REGISTRY_PORT=$REGISTRY_PORT GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f ./docker/traefik.yaml up -d --remove-orphans
+GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f ./docker/gitea.yaml up -d
 
 # Wait for Gitea to start
 function wait_for_gitea() {
@@ -43,6 +46,17 @@ function wait_for_gitea() {
   done
 }
 
+function create_org() {
+  local org="$1"
+  ./scripts/create_organisation.sh "$GITEA_TOKEN" "$GITEA_URL" "$org"
+}
+
+function import_framework() {
+  local url="$1"
+  local repo="$2"
+  ./scripts/import_framework.sh "$GITEA_TOKEN" "$USERNAME" "$PASSWORD" "git.$DOMAIN" "$url" "$repo"
+}
+
 # Wait for Gitea to start
 wait_for_gitea
 
@@ -56,11 +70,11 @@ export REGISTRATION_TOKEN=$REGISTRATION_TOKEN
 echo "Registration Token: $REGISTRATION_TOKEN"
 
 # Start the Gitea runner with the registration token
-REGISTRATION_TOKEN=$REGISTRATION_TOKEN docker compose -f gitea-runner.yaml up -d
+REGISTRATION_TOKEN=$REGISTRATION_TOKEN docker compose -f docker/gitea-runner.yaml up -d
 
 #### START GTI PREP
 GITEA_URL="$GITEA_PROTOCOL://git.$DOMAIN"
-GITEA_TOKEN=$(./create_pat.sh "$GITEA_PROTOCOL://git.$DOMAIN" "$USERNAME" "$PASSWORD")
+GITEA_TOKEN=$(./scripts/create_pat.sh "$GITEA_PROTOCOL://git.$DOMAIN" "$USERNAME" "$PASSWORD")
 
 # create org for demo repos
 response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
@@ -71,22 +85,24 @@ response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
         "full_name": "frameworks"
     }')
 
-./create_organisation.sh $GITEA_TOKEN $GITEA_URL "images"
-./create_organisation.sh $GITEA_TOKEN $GITEA_URL "frameworks"
 
-./create_team.sh $GITEA_TOKEN $GITEA_URL "frameworks" "competitors" false
 
-./import_framework.sh $GITEA_TOKEN $USERNAME $PASSWORD "git.$DOMAIN" "https://github.com/skill-setup/laravel-base.git" "laravel"
-./import_framework.sh $GITEA_TOKEN $USERNAME $PASSWORD "git.$DOMAIN" "https://github.com/skill-setup/vuejs-base.git" "vuejs"
-./import_framework.sh $GITEA_TOKEN $USERNAME $PASSWORD "git.$DOMAIN" "https://github.com/skill-setup/react-vite-js-base.git" "react"
-./import_framework.sh $GITEA_TOKEN $USERNAME $PASSWORD "git.$DOMAIN" "https://github.com/skill-setup/vanilla-base.git" "vanillajs"
-./import_framework.sh $GITEA_TOKEN $USERNAME $PASSWORD "git.$DOMAIN" "https://github.com/skill-setup/next-js-base.git" "nextjs"
+create_org "images"
+create_org "frameworks"
+
+./scripts/create_team.sh $GITEA_TOKEN $GITEA_URL "frameworks" "competitors" false
+
+import_framework "https://github.com/skill-setup/laravel-base.git" "laravel"
+import_framework "https://github.com/skill-setup/vuejs-base.git" "vuejs"
+import_framework "https://github.com/skill-setup/react-vite-js-base.git" "react"
+import_framework "https://github.com/skill-setup/vanilla-base.git" "vanillajs"
+import_framework "https://github.com/skill-setup/next-js-base.git" "nextjs"
 
 docker pull nginx:latest > /dev/null 2>&1
 docker login -u $USERNAME -p $PASSWORD git.$DOMAIN > /dev/null 2>&1
 
 # Generate competitors.yaml
-cat <<EOF > competitors.yaml
+cat <<EOF > dynamic/docker/competitors.yaml
 services:
 EOF
 
@@ -97,7 +113,7 @@ EOF
 tail -n +6 config/main | while read -r user pass sub; do
 
   docker exec gitea su -c '/app/gitea/gitea admin user create --username '$user' --password '$pass' --email '$user@example.com' --must-change-password=false' git
-  ./add_user_to_team.sh $GITEA_URL $GITEA_TOKEN "frameworks" "competitors" ${user}
+  ./scripts/add_user_to_team.sh $GITEA_URL $GITEA_TOKEN "frameworks" "competitors" ${user}
 
   # Create user-level secrets for this user
   echo "Creating user-level secrets for $user..."
@@ -119,7 +135,7 @@ tail -n +6 config/main | while read -r user pass sub; do
   for module in $MODULES; do
     echo "Processing module: $module for $user"
 
-  cat <<EOF >> competitors.yaml
+  cat <<EOF >> dynamic/docker/competitors.yaml
   ${user}_${module}:
     image: git.${DOMAIN}/${user}/${module}:latest
     container_name: ${user}_${module}
@@ -148,7 +164,7 @@ EOF
   done
 done
 
-cat <<EOF >> competitors.yaml
+cat <<EOF >> dynamic/docker/competitors.yaml
 
 networks:
   gitea:
@@ -156,19 +172,19 @@ networks:
 EOF
 
 # Start MySQL with the admin password as the root password
-MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD docker compose -f mysql.yaml up -d
+MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD docker compose -f docker/mysql.yaml up -d
 
 # Start watchtower
-USERNAME=$USERNAME PASSWORD=$PASSWORD DOMAIN=$DOMAIN docker compose -f watchtower.yaml up -d
+USERNAME=$USERNAME PASSWORD=$PASSWORD DOMAIN=$DOMAIN docker compose -f docker/watchtower.yaml up -d
 
 # Start Verdaccio for package caching
-docker compose -f verdaccio.yaml up -d
+docker compose -f docker/verdaccio.yaml up -d
 
 # Configure Verdaccio storage permissions to allow package uploads
 chmod 777 -R ./data/verdaccio
 
 # Start competitors work
-docker compose -f competitors.yaml up -d 
+docker compose -f docker/competitors.yaml up -d 
 
 # Write out environment variables to .env
 cat <<EOF > .env
