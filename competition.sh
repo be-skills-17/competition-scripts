@@ -8,6 +8,14 @@ fi
 
 ACTION=$1
 
+
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1090
+  source .env
+  set +a
+fi
+
 #Defining absolute path for various directories
 export BASE_DIR=$(pwd)
 export CONFIG_DIR=$BASE_DIR/config
@@ -16,6 +24,8 @@ export ACTIONS_DIR=$BASE_DIR/scripts/actions
 export DOCKER_DIR=$BASE_DIR/docker
 export DATA_DIR=$BASE_DIR/data
 
+export COMPOSE_PROJECT_NAME="competition_scripts"
+export COMPOSE_IGNORE_ORPHANS=true
 # Defining dynamic directories, which will hold generated files
 export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
 export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks

@@ -1,18 +1,11 @@
 #!/bin/bash
 
-if [ -f .env ]; then
-  set -a
-  # shellcheck disable=SC1090
-  source .env
-  set +a
-fi
-
-DOMAIN=$(sed -n '1p' $CONFIG_DIR/main)
+echo $DOCKER_DIR
 docker compose -f $DOCKER_DIR/watchtower.yaml down
-docker compose -f $DOCKER_DIR/competitors.yaml down
+docker compose -f $DYNAMIC_DOCKER_DIR/competitors.yaml down || true
 docker compose -f $DOCKER_DIR/mysql.yaml down
 docker compose -f $DOCKER_DIR/gitea-runner.yaml down
-GITEA_HOSTNAME=$DOMAIN docker compose -f $DOCKER_DIR/gitea.yaml down 
+docker compose -f $DOCKER_DIR/gitea.yaml down 
 docker compose -f $DOCKER_DIR/traefik.yaml down
 
 # delete all volumes from the containers

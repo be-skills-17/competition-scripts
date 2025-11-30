@@ -7,7 +7,6 @@ export USERNAME=$(sed -n '3p' config/main | tr -d '\r\n')
 export PASSWORD=$(sed -n '4p' config/main | tr -d '\r\n')
 export MODULES=$(sed -n '5p' config/main | tr -d '\r\n')
 
-
 mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
 touch $LOCK_FILE
 
@@ -26,7 +25,7 @@ else
 fi
 function docker_compose() {
   local file="$1"
-  docker compose -f $DOCKER_DIR/${file} up -d --remove-orphans
+  docker compose -f $DOCKER_DIR/${file} up -d 
 }
 # create various config and creation files
 # Start Traefik and Gitea using Docker Compose
@@ -96,7 +95,7 @@ response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
 create_org "images"
 create_org "frameworks"
 
-./scripts/create_team.sh "frameworks" "competitors" false
+$SCRIPTS_DIR/create_team.sh "frameworks" "competitors" false
 
 import_framework "https://github.com/skill-setup/laravel-base.git" "laravel"
 import_framework "https://github.com/skill-setup/vuejs-base.git" "vuejs"
@@ -183,10 +182,10 @@ docker_compose "watchtower.yaml"
 docker_compose "verdaccio.yaml"
 
 # Configure Verdaccio storage permissions to allow package uploads
-chmod 777 -R ./data/verdaccio
+chmod 777 -R ${DATA_DIR}/verdaccio
 
 # Start competitors work
-docker compose -f docker/competitors.yaml up -d 
+docker compose -f $DYNAMIC_DOCKER_DIR/competitors.yaml up -d 
 
 # Write out environment variables to .env
 cat <<EOF > .env

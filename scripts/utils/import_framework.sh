@@ -6,6 +6,11 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
+GITEA_URL="git.${DOMAIN}"
+
+echo "Gitea : ${GITEA_URL}"
+echo "Gitea token : ${GITEA_TOKEN}"
+
 # Set variables from script arguments
 GITHUB_URL=$1
 REPO_NAME=$2
@@ -24,6 +29,7 @@ echo "Move into $(pwd)"
 # sed -i '' "s|git.local.skill17.com|$GITEA_URL|g" ".github/workflows/$WORKFLOW_FILE"
 sed -i "s|git.local.skill17.com|$GITEA_URL|g" ".github/workflows/$WORKFLOW_FILE"
 
+git config http.sslVerify false
 # Configure git
 git config user.name "Franz Bot"
 git config user.email "franz@skill17.com"
@@ -33,7 +39,7 @@ git add ".github/workflows/$WORKFLOW_FILE"
 git commit -m "Update Docker registry URL in GitHub Action"
 
 # Create the repository on Gitea under the "frameworks" organization
-create_repo_response=$(curl -s -X POST "https://$GITEA_URL/api/v1/orgs/$ORG_NAME/repos" \
+create_repo_response=$(curl -s -k -X POST "https://$GITEA_URL/api/v1/orgs/$ORG_NAME/repos" \
 -H "Authorization: token $GITEA_TOKEN" \
 -H "Content-Type: application/json" \
 -d '{
