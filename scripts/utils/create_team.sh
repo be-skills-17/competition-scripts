@@ -1,17 +1,15 @@
 #!/bin/bash
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 <GITEA_TOKEN> <GITEA_URL> <ORG_NAME> <TEAM_NAME> <CAN_CREATE_ORG_REPO>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <ORG_NAME> <TEAM_NAME> <CAN_CREATE_ORG_REPO>"
     exit 1
 fi
 
 # Set variables from script arguments
-GITEA_TOKEN="$1"
-GITEA_URL="$2"
-ORG_NAME="$3"
-TEAM_NAME="$4"
-CAN_CREATE_ORG_REPO="$5"
+ORG_NAME="$1"
+TEAM_NAME="$2"
+CAN_CREATE_ORG_REPO="$3"
 
 # API endpoint to create a team in an organization
 API_ENDPOINT="$GITEA_URL/api/v1/orgs/$ORG_NAME/teams"

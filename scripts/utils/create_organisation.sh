@@ -1,15 +1,13 @@
 #!/bin/bash
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <GITEA_TOKEN> <GITEA_URL> <ORG_NAME>"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <ORG_NAME>"
     exit 1
 fi
 
 # Set variables from script arguments
-GITEA_TOKEN="$1"
-GITEA_URL="$2"
-ORG_NAME="$3"
+ORG_NAME="$1"
 
 # Create organization
 response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \

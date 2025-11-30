@@ -1,24 +1,24 @@
 #!/bin/bash
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 6 ]; then
-    echo "Usage: $0 <GITEA_TOKEN> <USERNAME> <PASSWORD> <GITEA_URL> <GITHUB_URL> <REPO_NAME>"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <GITHUB_URL> <REPO_NAME>"
     exit 1
 fi
 
 # Set variables from script arguments
-GITEA_TOKEN=$1
-USERNAME=$2
-PASSWORD=$3
-GITEA_URL=$4
-GITHUB_URL=$5
-REPO_NAME=$6
+GITHUB_URL=$1
+REPO_NAME=$2
 WORKFLOW_FILE='docker-ci.yml'
 ORG_NAME='frameworks'
 
 # Clone the repository
+cd $DYNAMIC_FRAMEWORKS_DIR || exit
+echo "Move into $(pwd)"
 git clone "$GITHUB_URL" "$REPO_NAME"
 cd "$REPO_NAME" || exit
+echo "Move into $(pwd)"
+
 
 # Replace the URL in the GitHub Action file
 # sed -i '' "s|git.local.skill17.com|$GITEA_URL|g" ".github/workflows/$WORKFLOW_FILE"

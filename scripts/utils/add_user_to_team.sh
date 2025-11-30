@@ -1,17 +1,15 @@
 #!/bin/bash
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 <GITEA_URL> <GITEA_TOKEN> <ORG_NAME> <TEAM_NAME> <USERNAME>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <ORG_NAME> <TEAM_NAME> <USERNAME>"
     exit 1
 fi
 
 # Set variables from script arguments
-GITEA_URL="$1"
-GITEA_TOKEN="$2"
-ORG_NAME="$3"
-TEAM_NAME="$4"
-USERNAME="$5"
+ORG_NAME="$1"
+TEAM_NAME="$2"
+USERNAME="$3"
 
 # API endpoint to get the team ID by name
 GET_TEAM_ID_ENDPOINT="$GITEA_URL/api/v1/orgs/$ORG_NAME/teams/search?q=$TEAM_NAME"

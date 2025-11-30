@@ -1,14 +1,15 @@
 #!/bin/bash
 
 # Read the username and password from the config/main file
-DOMAIN=$(sed -n '1p' config/main | tr -d '\r\n')
-ENABLE_HTTPS=$(sed -n '2p' config/main | tr -d '\r\n')
-USERNAME=$(sed -n '3p' config/main | tr -d '\r\n')
-PASSWORD=$(sed -n '4p' config/main | tr -d '\r\n')
-MODULES=$(sed -n '5p' config/main | tr -d '\r\n')
+export DOMAIN=$(sed -n '1p' config/main | tr -d '\r\n')
+export ENABLE_HTTPS=$(sed -n '2p' config/main | tr -d '\r\n')
+export USERNAME=$(sed -n '3p' config/main | tr -d '\r\n')
+export PASSWORD=$(sed -n '4p' config/main | tr -d '\r\n')
+export MODULES=$(sed -n '5p' config/main | tr -d '\r\n')
 
-mkdir -p "dynamic/docker" "dynamic/frameworks"
 
+mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
+touch $LOCK_FILE
 
 export GITEA_HOSTNAME=$DOMAIN
 export ENABLE_HTTPS=$ENABLE_HTTPS
@@ -26,8 +27,10 @@ fi
 
 # create various config and creation files
 # Start Traefik and Gitea using Docker Compose
-REGISTRY_PORT=$REGISTRY_PORT GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f ./docker/traefik.yaml up -d --remove-orphans
-GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f ./docker/gitea.yaml up -d
+REGISTRY_PORT=$REGISTRY_PORT GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f $DOCKER_DIR/traefik.yaml up -d --remove-orphans
+GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f $DOCKER_DIR/gitea.yaml up -d
+
+
 
 # Wait for Gitea to start
 function wait_for_gitea() {
@@ -48,13 +51,13 @@ function wait_for_gitea() {
 
 function create_org() {
   local org="$1"
-  ./scripts/create_organisation.sh "$GITEA_TOKEN" "$GITEA_URL" "$org"
+  $SCRIPTS_DIR/create_organisation.sh "$org"
 }
 
 function import_framework() {
   local url="$1"
   local repo="$2"
-  ./scripts/import_framework.sh "$GITEA_TOKEN" "$USERNAME" "$PASSWORD" "git.$DOMAIN" "$url" "$repo"
+  $SCRIPTS_DIR/import_framework.sh "$url" "$repo"
 }
 
 # Wait for Gitea to start
@@ -70,11 +73,11 @@ export REGISTRATION_TOKEN=$REGISTRATION_TOKEN
 echo "Registration Token: $REGISTRATION_TOKEN"
 
 # Start the Gitea runner with the registration token
-REGISTRATION_TOKEN=$REGISTRATION_TOKEN docker compose -f docker/gitea-runner.yaml up -d
+REGISTRATION_TOKEN=$REGISTRATION_TOKEN docker compose -f $DOCKER_DIR/gitea-runner.yaml up -d
 
 #### START GTI PREP
-GITEA_URL="$GITEA_PROTOCOL://git.$DOMAIN"
-GITEA_TOKEN=$(./scripts/create_pat.sh "$GITEA_PROTOCOL://git.$DOMAIN" "$USERNAME" "$PASSWORD")
+export GITEA_URL="$GITEA_PROTOCOL://git.$DOMAIN"
+export GITEA_TOKEN=$($SCRIPTS_DIR/create_pat.sh "$GITEA_PROTOCOL://git.$DOMAIN" "$USERNAME" "$PASSWORD")
 
 # create org for demo repos
 response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
@@ -90,7 +93,7 @@ response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
 create_org "images"
 create_org "frameworks"
 
-./scripts/create_team.sh $GITEA_TOKEN $GITEA_URL "frameworks" "competitors" false
+./scripts/create_team.sh "frameworks" "competitors" false
 
 import_framework "https://github.com/skill-setup/laravel-base.git" "laravel"
 import_framework "https://github.com/skill-setup/vuejs-base.git" "vuejs"
@@ -102,18 +105,18 @@ docker pull nginx:latest > /dev/null 2>&1
 docker login -u $USERNAME -p $PASSWORD git.$DOMAIN > /dev/null 2>&1
 
 # Generate competitors.yaml
-cat <<EOF > dynamic/docker/competitors.yaml
+cat <<EOF > $DYNAMIC_DOCKER_DIR/competitors.yaml
 services:
 EOF
 
-cat <<EOF > config/mysql/competitors.sql
+cat <<EOF > $CONFIG_DIR/mysql/competitors.sql
 EOF
 
 # initialize the basic modules
-tail -n +6 config/main | while read -r user pass sub; do
+tail -n +6 $CONFIG_DIR/main | while read -r user pass sub; do
 
   docker exec gitea su -c '/app/gitea/gitea admin user create --username '$user' --password '$pass' --email '$user@example.com' --must-change-password=false' git
-  ./scripts/add_user_to_team.sh $GITEA_URL $GITEA_TOKEN "frameworks" "competitors" ${user}
+  $SCRIPTS_DIR/add_user_to_team.sh  "frameworks" "competitors" ${user}
 
   # Create user-level secrets for this user
   echo "Creating user-level secrets for $user..."
@@ -135,7 +138,7 @@ tail -n +6 config/main | while read -r user pass sub; do
   for module in $MODULES; do
     echo "Processing module: $module for $user"
 
-  cat <<EOF >> dynamic/docker/competitors.yaml
+  cat <<EOF >> $DYNAMIC_DOCKER_DIR/competitors.yaml
   ${user}_${module}:
     image: git.${DOMAIN}/${user}/${module}:latest
     container_name: ${user}_${module}
@@ -153,9 +156,9 @@ EOF
     
     echo "pushing inital container"
     docker tag nginx:latest git.$DOMAIN/$user/$module:latest
-    docker push git.$DOMAIN/$user/$module #> /dev/null 2>&1
+    docker push git.$DOMAIN/$user/$module
 
-  cat <<EOF >> config/mysql/competitors.sql
+  cat <<EOF >> $CONFIG_DIR/mysql/competitors.sql
   CREATE DATABASE IF NOT EXISTS \`${user}_${module}\`;
   CREATE USER IF NOT EXISTS '$user'@'%' IDENTIFIED BY '$pass';
   GRANT ALL PRIVILEGES ON \`${user}_${module}\`.* TO '$user'@'%';
@@ -164,7 +167,7 @@ EOF
   done
 done
 
-cat <<EOF >> dynamic/docker/competitors.yaml
+cat <<EOF >> $DYNAMIC_DOCKER_DIR/competitors.yaml
 
 networks:
   gitea:
@@ -172,13 +175,13 @@ networks:
 EOF
 
 # Start MySQL with the admin password as the root password
-MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD docker compose -f docker/mysql.yaml up -d
+MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD docker compose -f $DOCKER_DIR/mysql.yaml up -d
 
 # Start watchtower
-USERNAME=$USERNAME PASSWORD=$PASSWORD DOMAIN=$DOMAIN docker compose -f docker/watchtower.yaml up -d
+USERNAME=$USERNAME PASSWORD=$PASSWORD DOMAIN=$DOMAIN docker compose -f $DOCKER_DIR/watchtower.yaml up -d
 
 # Start Verdaccio for package caching
-docker compose -f docker/verdaccio.yaml up -d
+docker compose -f $DOCKER_DIR/verdaccio.yaml up -d
 
 # Configure Verdaccio storage permissions to allow package uploads
 chmod 777 -R ./data/verdaccio
@@ -199,6 +202,13 @@ ENTRYPOINT="$ENTRYPOINT"
 GITEA_PROTOCOL="$GITEA_PROTOCOL"
 REGISTRY_PORT="$REGISTRY_PORT"
 REGISTRATION_TOKEN="$REGISTRATION_TOKEN"
+BASE_DIR="$BASE_DIR"
+CONFIG_DIR="$CONFIG_DIR"
+SCRIPTS_DIR="$SCRIPTS_DIR"
+DOCKER_DIR="$DOCKER_DIR"
+DATA_DIR="$DATA_DIR"
+DYNAMIC_DOCKER_DIR="$DYNAMIC_DOCKER_DIR"
+DYNAMIC_FRAMEWORKS_DIR="$DYNAMIC_FRAMEWORKS_DIR"
 EOF
 
 echo "..all done!"
