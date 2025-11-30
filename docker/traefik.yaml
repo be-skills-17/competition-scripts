@@ -7,31 +7,31 @@ services:
       - gitea
       - default
     command:
-      - '--log.level=DEBUG'
-      - '--api.insecure=true'
-      - '--providers.file.directory=/etc/traefik/dynamic'
-      - '--providers.docker=true'
-      - '--providers.docker.exposedbydefault=false'
-      - '--entrypoints.web.address=:80'
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
       # - '--entrypoints.websecure.address=:443'
-      - '--entrypoints.websecure.address=:${REGISTRY_PORT}'
-#      - '--providers.docker.defaultRule=HostRegexp(`{_:{{ index .Labels \"com.docker.compose.service\" }}\\..*}`)'
+      - "--entrypoints.websecure.address=:${REGISTRY_PORT}"
+      #      - '--providers.docker.defaultRule=HostRegexp(`{_:{{ index .Labels \"com.docker.compose.service\" }}\\..*}`)'
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.forwardedHeaders.trustedIPs=0.0.0.0/0"
       - "--entrypoints.websecure.proxyProtocol.trustedIPs=0.0.0.0/0"
-      - '--providers.docker.defaultRule=HostRegexp(`{host:.+}`)'
-      - '--serversTransport.insecureSkipVerify=true'
+      - "--providers.docker.defaultRule=HostRegexp(`{host:.+}`)"
+      - "--serversTransport.insecureSkipVerify=true"
     ports:
-      - '80:80'
-      - '443:443'
-      - '5000:5000'
+      - "80:80"
+      - "443:443"
+      - "5000:5000"
     volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock:ro'
-      - './letsencrypt:/letsencrypt'
-      - './config/traefik/config.yaml:/etc/traefik/dynamic/traefik.yaml'
-      - './config/traefik/certs:/etc/certs/'
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "${CONFIG_DIR}/letsencrypt:/letsencrypt"
+      - "${CONFIG_DIR}/traefik/config.yaml:/etc/traefik/dynamic/traefik.yaml"
+      - "${CONFIG_DIR}/traefik/certs:/etc/certs/"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.rule=Host(`${GITEA_HOSTNAME}`)"

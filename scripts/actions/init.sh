@@ -24,12 +24,15 @@ else
   export GITEA_PROTOCOL=http
   export REGISTRY_PORT=5000
 fi
-
+function docker_compose() {
+  local file="$1"
+  docker compose -f $DOCKER_DIR/${file} up -d --remove-orphans
+}
 # create various config and creation files
 # Start Traefik and Gitea using Docker Compose
-REGISTRY_PORT=$REGISTRY_PORT GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f $DOCKER_DIR/traefik.yaml up -d --remove-orphans
-GITEA_HOSTNAME=$DOMAIN GITEA_PROTOCOL=$GITEA_PROTOCOL ENTRYPOINT=$ENTRYPOINT ENABLE_HTTPS=$ENABLE_HTTPS docker compose -f $DOCKER_DIR/gitea.yaml up -d
 
+docker_compose "traefik.yaml"
+docker_compose "gitea.yaml"
 
 
 # Wait for Gitea to start
@@ -73,7 +76,7 @@ export REGISTRATION_TOKEN=$REGISTRATION_TOKEN
 echo "Registration Token: $REGISTRATION_TOKEN"
 
 # Start the Gitea runner with the registration token
-REGISTRATION_TOKEN=$REGISTRATION_TOKEN docker compose -f $DOCKER_DIR/gitea-runner.yaml up -d
+docker_compose "gitea-runner.yaml"
 
 #### START GTI PREP
 export GITEA_URL="$GITEA_PROTOCOL://git.$DOMAIN"
@@ -175,13 +178,9 @@ networks:
 EOF
 
 # Start MySQL with the admin password as the root password
-MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD docker compose -f $DOCKER_DIR/mysql.yaml up -d
-
-# Start watchtower
-USERNAME=$USERNAME PASSWORD=$PASSWORD DOMAIN=$DOMAIN docker compose -f $DOCKER_DIR/watchtower.yaml up -d
-
-# Start Verdaccio for package caching
-docker compose -f $DOCKER_DIR/verdaccio.yaml up -d
+docker_compose "mysql.yaml"
+docker_compose "watchtower.yaml"
+docker_compose "verdaccio.yaml"
 
 # Configure Verdaccio storage permissions to allow package uploads
 chmod 777 -R ./data/verdaccio

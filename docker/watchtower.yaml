@@ -4,7 +4,7 @@ services:
     container_name: "docker-login"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./config/watchtower:/root/.docker"
+      - "${CONFIG_DIR}/watchtower:/root/.docker"
     entrypoint: >
       sh -c "
       echo 'Logging in to Docker registry...';
@@ -22,8 +22,8 @@ services:
       - SSL_CERT_FILE=/etc/ssl/cert.pem
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./config/watchtower/config.json:/config.json
-      - ./config/traefik/certs/ca-cert.crt:/etc/ssl/cert.pem
+      - "${CONFIG_DIR}/watchtower/config.json:/config.json"
+      - "${CONFIG_DIR}/traefik/certs/ca-cert.crt:/etc/ssl/cert.pem"
     command: --interval 10 --cleanup --include-stopped --revive-stopped --label-enable
     labels:
       - "traefik.enable=true"

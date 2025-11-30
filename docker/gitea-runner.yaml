@@ -10,9 +10,9 @@ services:
       GITEA_RUNNER_NAME: "Runner 1"
     restart: always
     volumes:
-      - ./config/gitea-runner/config.yaml:/config.yaml
+      - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/runner1:/data
+      - "${DATA_DIR}/runner1:/data"
   runner2:
     <<: *runner
     environment:
@@ -20,9 +20,9 @@ services:
       GITEA_RUNNER_NAME: "Runner 2"
     restart: always
     volumes:
-      - ./config/gitea-runner/config.yaml:/config.yaml
+      - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/runner2:/data
+      - "${DATA_DIR}/runner2:/data"
   runner3:
     <<: *runner
     environment:
@@ -30,19 +30,19 @@ services:
       GITEA_RUNNER_NAME: "Runner 3"
     restart: always
     volumes:
-      - ./config/gitea-runner/config.yaml:/config.yaml
+      - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/runner3:/data
+      - "${DATA_DIR}/runner3:/data"
   runner4:
-    <<: *runner 
+    <<: *runner
     environment:
       <<: *runner_env
       GITEA_RUNNER_NAME: "Runner 4"
     restart: always
     volumes:
-      - ./config/gitea-runner/config.yaml:/config.yaml
+      - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/runner4:/data
+      - "${DATA_DIR}/runner4:/data"
   runner5:
     <<: *runner
     environment:
@@ -50,9 +50,9 @@ services:
       GITEA_RUNNER_NAME: "Runner 5"
     restart: always
     volumes:
-      - ./config/gitea-runner/config.yaml:/config.yaml
+      - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/runner5:/data
+      - "${DATA_DIR}/runner5:/data"
   runner6:
     <<: *runner
     environment:
@@ -60,9 +60,9 @@ services:
       GITEA_RUNNER_NAME: "Runner 6"
     restart: always
     volumes:
-      - ./config/gitea-runner/config.yaml:/config.yaml
+      - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/runner6:/data
+      - "${DATA_DIR}/runner6:/data"
 
 networks:
   gitea:

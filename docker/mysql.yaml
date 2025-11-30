@@ -7,8 +7,8 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
-      - ./data/mysql-competition:/var/lib/mysql
-      - "./config/mysql/competitors.sql:/docker-entrypoint-initdb.d/1.sql"
+      - "${DATA_DIR}/mysql-competition:/var/lib/mysql"
+      - "${CONFIG_DIR}/mysql/competitors.sql:/docker-entrypoint-initdb.d/1.sql"
     labels:
       traefik.enable: "true"
       traefik.http.routers.competitor-db.rule: HostRegexp(`{_:db\..*}`)
