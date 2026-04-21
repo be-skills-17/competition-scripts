@@ -1,14 +1,21 @@
 #!/bin/bash
 
-# Read the username and password from the config/main file
-export DOMAIN=$(sed -n '1p' config/main | tr -d '\r\n')
-export ENABLE_HTTPS=$(sed -n '2p' config/main | tr -d '\r\n')
-export USERNAME=$(sed -n '3p' config/main | tr -d '\r\n')
-export PASSWORD=$(sed -n '4p' config/main | tr -d '\r\n')
-export MODULES=$(sed -n '5p' config/main | tr -d '\r\n')
+CONFIG_FILE=$(realpath "config/main.json")
+IMPORT_SCRIPT=$(realpath "./scripts/utils/import_framework.sh")
+
+export DOMAIN=$(jq -r '.domain' $CONFIG_FILE)
+export ENABLE_HTTPS=$(jq -r '.enable_https' $CONFIG_FILE)
+export USERNAME=$(jq -r '.username' $CONFIG_FILE)
+export PASSWORD=$(jq -r '.password' $CONFIG_FILE)
+
+export MODULES=$(jq -r '.modules | join(" ")' $CONFIG_FILE)
+
+FRAMEWORKS_REPO=$(jq -r '.frameworks_repo' "$CONFIG_FILE")
+TEMP_DIR="/tmp/framework-templates"
 
 mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
 touch $LOCK_FILE
+
 
 export GITEA_HOSTNAME=$DOMAIN
 export ENABLE_HTTPS=$ENABLE_HTTPS
@@ -96,12 +103,23 @@ create_org "images"
 create_org "frameworks"
 
 $SCRIPTS_DIR/create_team.sh "frameworks" "competitors" false
+echo "Cloning templates repository..."
+git clone "$FRAMEWORKS_REPO" "$TEMP_DIR"
 
-import_framework "https://github.com/skill-setup/laravel-base.git" "laravel"
-import_framework "https://github.com/skill-setup/vuejs-base.git" "vuejs"
-import_framework "https://github.com/skill-setup/react-vite-js-base.git" "react"
-import_framework "https://github.com/skill-setup/vanilla-base.git" "vanillajs"
-import_framework "https://github.com/skill-setup/next-js-base.git" "nextjs"
+cd "$TEMP_DIR" || exit
+rm -rf .git
+
+for dir in $(find . -maxdepth 1 -type d -not -path '*/.*' -not -path '.'); do
+    framework_name=$(basename "$dir")
+    framework_path=$(realpath "$dir")
+    
+    echo "------------------------------------------"
+    echo "Found framework: $framework_name"
+    
+    bash "$IMPORT_SCRIPT" "$framework_path" "$framework_name"
+done
+
+
 
 docker pull nginx:latest > /dev/null 2>&1
 docker login -u $USERNAME -p $PASSWORD git.$DOMAIN > /dev/null 2>&1
@@ -115,8 +133,16 @@ cat <<EOF > $CONFIG_DIR/mysql/competitors.sql
 EOF
 
 # initialize the basic modules
-tail -n +6 $CONFIG_DIR/main | while read -r user pass sub; do
+for row in $(jq -r '.competitors[] | @base64' "$CONFIG_FILE"); do
+  _jq() {
+    echo ${row} | base64 --decode | jq -r ${1}
+  }
 
+  echo "Processing competitor: $(_jq '.name')"
+
+  user=$(_jq '.username')
+  pass=$(_jq '.password')
+  sub=$(_jq '.subdomain')
   docker exec gitea su -c '/app/gitea/gitea admin user create --username '$user' --password '$pass' --email '$user@example.com' --must-change-password=false' git
   $SCRIPTS_DIR/add_user_to_team.sh  "frameworks" "competitors" ${user}
 

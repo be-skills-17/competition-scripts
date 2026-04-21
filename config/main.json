@@ -1,0 +1,20 @@
+{
+  "domain": "local.skill17.com",
+  "enable_https": true,
+  "username": "root",
+  "password": "skill17",
+  "modules": ["module-a", "module-b"],
+  "competitors": [
+    {
+      "username": "comp01",
+      "password": "test123",
+      "subdomain": "qwer"
+    },
+    {
+      "username": "comp02",
+      "password": "test123",
+      "subdomain": "asdf"
+    }
+  ],
+  "frameworks_repo": "https://github.com/be-skills-17/frameworks-templates.git"
+}
