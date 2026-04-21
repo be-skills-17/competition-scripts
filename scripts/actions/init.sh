@@ -16,7 +16,6 @@ TEMP_DIR="/tmp/framework-templates"
 mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
 touch $LOCK_FILE
 
-
 export GITEA_HOSTNAME=$DOMAIN
 export ENABLE_HTTPS=$ENABLE_HTTPS
 export MYSQL_ROOT_PASSWORD=$PASSWORD
@@ -186,7 +185,7 @@ EOF
     
     echo "pushing inital container"
     docker tag nginx:latest git.$DOMAIN/$user/$module:latest
-    docker push git.$DOMAIN/$user/$module
+    docker push git.$DOMAIN/$user/$module > $REDIRECT 2>&1
 
   cat <<EOF >> $CONFIG_DIR/mysql/competitors.sql
   CREATE DATABASE IF NOT EXISTS \`${user}_${module}\`;

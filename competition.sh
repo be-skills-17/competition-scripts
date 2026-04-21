@@ -1,4 +1,20 @@
 #!/bin/bash
+export VERBOSE=false
+
+for arg in "$@"; do
+  case $arg in
+    -v|--verbose)
+      export VERBOSE=true
+      shift 
+      ;;
+  esac
+done
+
+if [ "$VERBOSE" = true ]; then
+    export REDIRECT="/dev/stdout"
+else
+    export REDIRECT="/dev/null"
+fi
 
 # Check if the correct number of arguments are provided
 if [ "$#" -ne 1 ]; then
