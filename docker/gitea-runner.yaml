@@ -13,6 +13,7 @@ services:
       - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
       - "${DATA_DIR}/runner1:/data"
+
   runner2:
     <<: *runner
     environment:
@@ -63,7 +64,6 @@ services:
       - "${CONFIG_DIR}/gitea-runner/config.yaml:/config.yaml"
       - /var/run/docker.sock:/var/run/docker.sock
       - "${DATA_DIR}/runner6:/data"
-
 networks:
   gitea:
     external: true

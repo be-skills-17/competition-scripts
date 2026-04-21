@@ -17,6 +17,8 @@ REPO_NAME=$2
 WORKFLOW_FILE='docker-ci.yml'
 ORG_NAME='frameworks'
 
+echo "GitHub URL: $GITHUB_URL"
+echo "Repository Name: $REPO_NAME"
 # Clone the repository
 cd $DYNAMIC_FRAMEWORKS_DIR || exit
 echo "Move into $(pwd)"

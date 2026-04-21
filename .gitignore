@@ -4,3 +4,4 @@ data
 .env
 dynamic
 competition.lock
+config/traefik/certs

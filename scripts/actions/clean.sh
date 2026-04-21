@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo $DOCKER_DIR
-docker compose -f $DOCKER_DIR/watchtower.yaml down
+docker compose -f $DOCKER_DIR/wud.yaml down
 docker compose -f $DYNAMIC_DOCKER_DIR/competitors.yaml down || true
 docker compose -f $DOCKER_DIR/mysql.yaml down
 docker compose -f $DOCKER_DIR/gitea-runner.yaml down

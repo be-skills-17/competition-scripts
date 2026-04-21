@@ -1,0 +1,47 @@
+services:
+  #  docker-login:
+  #    image: "docker:latest"
+  #    container_name: "docker-login"
+  #    volumes:
+  #      - "/var/run/docker.sock:/var/run/docker.sock"
+  #      - "${CONFIG_DIR}/watchtower:/root/.docker"
+  #    entrypoint: >
+  ##      sh -c "
+  #      echo 'Logging in to Docker registry...';
+  #      docker login git.${DOMAIN} -u ${USERNAME} -p ${PASSWORD};
+  #      echo 'Docker login complete.'
+  #      "
+  #    labels:
+  #      wud.watch: false
+
+  whatsupdocker:
+    image: getwud/wud
+    container_name: wud
+    environment:
+      - WUD_REGISTRY_GITEA_PRIVATE_URL=${GITEA_URL}
+      - WUD_REGISTRY_GITEA_PRIVATE_LOGIN=${USERNAME}
+      - WUD_REGISTRY_GITEA_PRIVATE_PASSWORD=${PASSWORD}
+      - WUD_WATCHER_DOCKER_WATCHBYDEFAULT=false
+      - WUD_WATCHER_DOCKER_JITTER=1
+      - WUD_REGISTRY_HUB_PUBLIC_ENABLED=false # Docker Hub
+      - WUD_REGISTRY_ECR_PUBLIC_ENABLED=false # AWS ECR
+      - WUD_REGISTRY_GCR_PUBLIC_ENABLED=false # Google Container Registry
+      - WUD_REGISTRY_GHCR_PUBLIC_ENABLED=false # GitHub Container Registry
+      - WUD_REGISTRY_QUAY_PUBLIC_ENABLED=false # Quay.io
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    cap_add:
+      - NET_ADMIN
+    extra_hosts:
+      - "git.${DOMAIN}:172.17.0.1"
+    ports:
+      - 9000:3000
+    labels:
+      traefik.enable: true
+      traefik.http.routers.wud.rule: Host(`wud.${DOMAIN}`)
+      traefik.http.services.wud.loadbalancer.server.port: 3000
+      traefik.http.routers.wud.tls: ${ENABLE_HTTPS}
+
+networks:
+  gitea:
+    external: true

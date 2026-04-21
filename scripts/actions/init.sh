@@ -148,6 +148,8 @@ tail -n +6 $CONFIG_DIR/main | while read -r user pass sub; do
     networks:
       - gitea
     labels:
+      - "wud.watch=true"
+      - "wud.watch.digest=true"
       - "traefik.enable=true"
       - "traefik.http.routers.${user}_${module}.rule=Host(\`${sub}-${module}.$DOMAIN\`)"
       - "traefik.http.routers.${user}_${module}.entrypoints=${ENTRYPOINT}"
@@ -178,7 +180,7 @@ EOF
 
 # Start MySQL with the admin password as the root password
 docker_compose "mysql.yaml"
-docker_compose "watchtower.yaml"
+docker_compose "wud.yaml"
 docker_compose "verdaccio.yaml"
 
 # Configure Verdaccio storage permissions to allow package uploads
