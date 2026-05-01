@@ -74,6 +74,10 @@ start_competitor_services() {
 # Configure Verdaccio permissions
 configure_verdaccio_permissions() {
     log_info "Configuring Verdaccio permissions..."
+    mkdir -p ${DATA_DIR}/verdaccio/storage
+    mkdir -p ${DATA_DIR}/verdaccio/conf
     chmod 777 -R ${DATA_DIR}/verdaccio
+    chmod 777 -R ${DATA_DIR}/verdaccio/storage
+    chmod 777 -R ${DATA_DIR}/verdaccio/conf
     log_success "Verdaccio permissions configured"
 }
