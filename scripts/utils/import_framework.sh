@@ -15,6 +15,7 @@ WORKFLOW_FILE='docker-ci.yml'
 ORG_NAME='frameworks'
 
 
+
 cd "$REPO_PATH" || exit
 
 echo "Configuring git repository..."
@@ -23,11 +24,6 @@ git init
 git config user.name "Init Bot"
 git config user.email "iniot@skill17.com"
 git config http.sslVerify false
-
-echo "Replacings constants..."
-# Replace the URL in the GitHub Action file
-# sed -i '' "s|git.local.skill17.com|$GITEA_URL|g" ".github/workflows/$WORKFLOW_FILE"
-sed -i "s|git.local.skill17.com|$GITEA_URL|g" ".github/workflows/$WORKFLOW_FILE"
 
 echo "Commiting changes..."
 git add -A

@@ -62,6 +62,19 @@ function create_org() {
   $SCRIPTS_DIR/create_organisation.sh "$org"
 }
 
+function create_user_secret() {
+    local user=$1
+    local pass=$2
+    local secret_name=$3
+    local secret_value=$4
+    
+    curl -s -k -X PUT \
+        -u "$user:$pass" \
+        -H "Content-Type: application/json" \
+        -d "{\"data\": \"$secret_value\"}" \
+        "$GITEA_URL/api/v1/user/actions/secrets/$secret_name"
+}
+
 function import_framework() {
   local url="$1"
   local repo="$2"
@@ -100,6 +113,7 @@ response=$(curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
 
 create_org "images"
 create_org "frameworks"
+
 
 $SCRIPTS_DIR/create_team.sh "frameworks" "competitors" false
 echo "Cloning templates repository..."
@@ -142,6 +156,7 @@ for row in $(jq -r '.competitors[] | @base64' "$CONFIG_FILE"); do
   user=$(_jq '.username')
   pass=$(_jq '.password')
   sub=$(_jq '.subdomain')
+  echo "Creating Gitea user: $user with subdomain: $sub and password: $pass"
   docker exec gitea su -c '/app/gitea/gitea admin user create --username '$user' --password '$pass' --email '$user@example.com' --must-change-password=false' git
   $SCRIPTS_DIR/add_user_to_team.sh  "frameworks" "competitors" ${user}
 
@@ -149,13 +164,12 @@ for row in $(jq -r '.competitors[] | @base64' "$CONFIG_FILE"); do
   echo "Creating user-level secrets for $user..."
 
   # Create USER secret
-  curl -s -k -X PUT \
-    -u "$user:$pass" \
-    -H "Content-Type: application/json" \
-    -d "{\"data\": \"$user\"}" \
-    "$GITEA_URL/api/v1/user/actions/secrets/USER"
-  
-  # Create PASS secret  
+  create_user_secret "$user" "$pass" "USER" "$user"
+  create_user_secret "$user" "$pass" "PASS" "$pass"
+  create_user_secret "$user" "$pass" "DOMAIN" "$DOMAIN"
+  create_user_secret "$user" "$pass" "NPM_REGISTRY_URL" "http://verdaccio:4873"
+  create_user_secret "$user" "$pass" "SERVER_IP" "127.0.0.1"
+
   curl -s -k -X PUT \
     -u "$user:$pass" \
     -H "Content-Type: application/json" \
@@ -167,7 +181,7 @@ for row in $(jq -r '.competitors[] | @base64' "$CONFIG_FILE"); do
 
   cat <<EOF >> $DYNAMIC_DOCKER_DIR/competitors.yaml
   ${user}_${module}:
-    image: git.${DOMAIN}/${user}/${module}:latest
+    image: git.${DOMAIN}/${user}/${module}:1.0.0
     container_name: ${user}_${module}
     restart: always
     networks:
@@ -175,6 +189,8 @@ for row in $(jq -r '.competitors[] | @base64' "$CONFIG_FILE"); do
     labels:
       - "wud.watch=true"
       - "wud.watch.digest=true"
+      - "wud.registry=gitea.private"
+      - 'wud.tag.include=^\d+\.\d+\.\d+\$\$'
       - "traefik.enable=true"
       - "traefik.http.routers.${user}_${module}.rule=Host(\`${sub}-${module}.$DOMAIN\`)"
       - "traefik.http.routers.${user}_${module}.entrypoints=${ENTRYPOINT}"
@@ -184,8 +200,11 @@ for row in $(jq -r '.competitors[] | @base64' "$CONFIG_FILE"); do
 EOF
     
     echo "pushing inital container"
+    docker tag nginx:latest git.$DOMAIN/$user/$module:1.0.0
     docker tag nginx:latest git.$DOMAIN/$user/$module:latest
-    docker push git.$DOMAIN/$user/$module > $REDIRECT 2>&1
+    
+    docker push git.$DOMAIN/$user/$module:1.0.0 > $REDIRECT 2>&1
+    docker push git.$DOMAIN/$user/$module:latest > $REDIRECT 2>&1
 
   cat <<EOF >> $CONFIG_DIR/mysql/competitors.sql
   CREATE DATABASE IF NOT EXISTS \`${user}_${module}\`;
