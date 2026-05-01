@@ -37,7 +37,7 @@ setup_service_vars() {
 
 # Setup directory variables
 setup_directory_vars() {
-    export TEMP_DIR="/tmp/framework-templates"
+    export TEMP_DIR=$(realpath "dynamic/frameworks")
     export CONFIG_FILE=$(realpath "config/main.json")
     export IMPORT_SCRIPT=$(realpath "./scripts/utils/import_framework.sh")
     
