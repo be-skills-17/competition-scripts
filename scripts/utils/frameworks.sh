@@ -7,6 +7,13 @@ import_framework() {
     local framework_path=$1
     local framework_name=$2
     
+    # Check if .npmrc exists and replace ##DOMAIN## with actual domain
+    if [ -f "$framework_path/.npmrc" ]; then
+        log_info "Found .npmrc in $framework_name, replacing ##DOMAIN## with $DOMAIN"
+        sed -i "s/##DOMAIN##/$DOMAIN/g" "$framework_path/.npmrc"
+        log_info ".npmrc updated with domain: $DOMAIN"
+    fi
+    
     $SCRIPTS_DIR/import_framework.sh "$framework_path" "$framework_name"
 }
 

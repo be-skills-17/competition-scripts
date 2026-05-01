@@ -17,8 +17,9 @@ services:
     container_name: "verdaccio"
     labels:
       traefik.enable: "true"
-      traefik.http.routers.verdaccio.rule: HostRegexp(`{_:verdaccio\..*}`)
+      traefik.http.routers.verdaccio.rule: Host(`npm.${DOMAIN}`)
       traefik.http.services.verdaccio.loadbalancer.server.port: 4873
+      traefik.http.routers.verdaccio.tls: ${ENABLE_HTTPS}
     environment:
       - VERDACCIO_PORT=4873
     ports:
