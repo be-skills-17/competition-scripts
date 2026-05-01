@@ -1,0 +1,54 @@
+storage: /verdaccio/storage
+
+plugins: /verdaccio/plugins
+
+web:
+  title: Verdaccio Private Registry
+  # You can customize the UI logo by pointing to an image URL
+  # logo: http://somedomain/somelogo.png
+
+auth:
+  htpasswd:
+    file: ./htpasswd
+    # Maximum amount of users allowed to register (default: 1000)
+    # Set to -1 to disable registration via `npm adduser`
+    max_users: 1000
+
+# a list of other known repositories we can talk to
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    # If npmjs is down or slow, Verdaccio will cache the timeout
+    timeout: 30s
+    cache: true
+
+packages:
+  # Scoped packages (e.g., @mycompany/mypackage)
+  '@*/*':
+    # who is allowed to access/download packages ($all, $anonymous, $authenticated)
+    access: $all
+    # who is allowed to publish packages
+    publish: $authenticated
+    # who is allowed to unpublish packages
+    unpublish: $authenticated
+    # if package is not available locally, proxy requests to 'npmjs' registry
+    proxy: npmjs
+
+  # All other packages
+  '**':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+middlewares:
+  audit:
+    enabled: true
+    action: npmjs
+
+# To override the default port and bind to all interfaces (CRITICAL FOR DOCKER)
+listen: 0.0.0.0:4873
+
+# Log settings
+logs:
+  - { type: stdout, format: pretty, level: http }

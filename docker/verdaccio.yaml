@@ -1,4 +1,17 @@
 services:
+  # This container starts first, fixes all folder permissions, and exits.
+  verdaccio-init:
+    image: alpine:latest
+    container_name: "verdaccio-init"
+    # Mount the exact same volumes as Verdaccio
+    volumes:
+      - "${DATA_DIR}/verdaccio:/verdaccio/storage"
+      - "${CONFIG_DIR}/verdaccio:/verdaccio/conf"
+    # Ensure folders exist, then force ownership to UID 10001 (Verdaccio's user)
+    command: >
+      sh -c "mkdir -p /verdaccio/storage /verdaccio/conf && 
+             chown -R 10001:10001 /verdaccio/storage /verdaccio/conf && 
+             chmod -R 755 /verdaccio/storage /verdaccio/conf"
   verdaccio:
     image: verdaccio/verdaccio
     container_name: "verdaccio"
