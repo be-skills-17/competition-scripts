@@ -1,8 +1,10 @@
 #!/bin/bash
 
+source "$(dirname "$0")/logging.sh"
+
 # Initialize competitors configuration files
 initialize_competitors_config() {
-    echo "Initializing competitors configuration..."
+    log_info "Initializing competitors configuration..."
     
     cat <<EOF > $DYNAMIC_DOCKER_DIR/competitors.yaml
 services:
@@ -57,7 +59,7 @@ push_initial_module_image() {
     local user=$1
     local module=$2
     
-    echo "Pushing initial container for $user/$module"
+    log_debug "Pushing initial container for $user/$module"
     docker tag nginx:latest git.$DOMAIN/$user/$module:1.0.0
     docker tag nginx:latest git.$DOMAIN/$user/$module:latest
     
@@ -72,7 +74,7 @@ process_competitor_module() {
     local subdomain=$3
     local pass=$4
     
-    echo "Processing module: $module for $user"
+    log_debug "Processing module: $module for $user"
     
     add_competitor_module_to_compose "$user" "$module" "$subdomain"
     add_competitor_module_to_sql "$user" "$module" "$pass"
@@ -92,8 +94,8 @@ process_competitor() {
     local password=$(_jq '.password')
     local subdomain=$(_jq '.subdomain')
     
-    echo "Processing competitor: $(_jq '.name')"
-    echo "Creating Gitea user: $username with subdomain: $subdomain"
+    log_subsection "Competitor: $(_jq '.name')"
+    log_info "Creating Gitea user: $username (subdomain: $subdomain)"
     
     create_competitor_user "$username" "$password"
     add_competitor_to_team "frameworks" "competitors" "$username"
@@ -108,7 +110,7 @@ process_competitor() {
 process_all_competitors() {
     local config_file=$1
     
-    echo "Processing all competitors..."
+    log_section "Processing All Competitors"
     
     for row in $(jq -r '.competitors[] | @base64' "$config_file"); do
         process_competitor "$row" "$config_file"

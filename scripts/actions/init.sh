@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Source logging first
+source "$SCRIPTS_DIR/logging.sh"
+
 # Source all utility modules
 source "$SCRIPTS_DIR/config.sh"
 source "$SCRIPTS_DIR/docker-services.sh"
@@ -18,11 +21,13 @@ start_core_services
 wait_for_gitea
 
 # Create admin user and setup runner
+log_section "Setting up Admin User and Runner"
 create_admin_user "$USERNAME" "$PASSWORD"
 generate_registration_token
 start_runner_services
 
 # Setup Gitea access and organizations
+log_section "Setting up Gitea Access"
 get_personal_access_token
 setup_organizations_and_teams
 
@@ -44,5 +49,6 @@ start_competitor_services
 # Export environment variables
 export_environment_variables ".env"
 
-echo "..all done!"
+echo ""
+log_success "All done! Competition environment is ready! 🎉"
 

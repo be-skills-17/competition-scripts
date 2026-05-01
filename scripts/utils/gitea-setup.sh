@@ -1,26 +1,29 @@
 #!/bin/bash
 
+source "$(dirname "$0")/logging.sh"
+
 # Create admin user in Gitea
 create_admin_user() {
     local username=$1
     local password=$2
     
-    echo "Creating Gitea admin user: $username"
+    log_info "Creating Gitea admin user: $username"
     docker exec gitea su -c "/app/gitea/gitea admin user create --username $username --password $password --email $username@example.com --admin" git
 }
 
 # Generate registration token for Gitea runner
 generate_registration_token() {
+    log_info "Generating registration token for Gitea runner..."
     local token=$(docker exec gitea su -c '/app/gitea/gitea actions generate-runner-token' git)
     export REGISTRATION_TOKEN=$token
-    echo "Registration Token: $REGISTRATION_TOKEN"
+    log_success "Registration Token: $REGISTRATION_TOKEN"
 }
 
 # Create organization in Gitea
 create_organization() {
     local org_name=$1
     
-    echo "Creating organization: $org_name"
+    log_info "Creating organization: $org_name"
     curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
         -H "Content-Type: application/json" \
         -H "Authorization: token $GITEA_TOKEN" \
@@ -54,7 +57,7 @@ create_user_secrets() {
     local user=$1
     local pass=$2
     
-    echo "Creating user-level secrets for $user..."
+    log_info "Creating user-level secrets for $user..."
     
     create_user_secret "$user" "$pass" "USER" "$user"
     create_user_secret "$user" "$pass" "PASS" "$pass"
@@ -68,7 +71,7 @@ create_competitor_user() {
     local username=$1
     local password=$2
     
-    echo "Creating Gitea user: $username"
+    log_info "Creating Gitea user: $username"
     docker exec gitea su -c "/app/gitea/gitea admin user create --username '$username' --password '$password' --email '$username@example.com' --must-change-password=false" git
 }
 
@@ -83,7 +86,7 @@ add_competitor_to_team() {
 
 # Setup basic organizations and teams
 setup_organizations_and_teams() {
-    echo "Setting up organizations and teams..."
+    log_section "Setting up Organizations and Teams"
     
     create_organization "images"
     create_organization "frameworks"

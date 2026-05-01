@@ -1,10 +1,12 @@
 #!/bin/bash
 
+source "$(dirname "$0")/logging.sh"
+
 # Export all environment variables to .env file
 export_environment_variables() {
     local output_file=${1:-.env}
     
-    echo "Exporting environment variables to $output_file"
+    log_info "Exporting environment variables to $output_file"
     
     cat <<EOF > "$output_file"
 DOMAIN="$DOMAIN"

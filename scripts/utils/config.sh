@@ -1,8 +1,11 @@
 #!/bin/bash
 
+source "$(dirname "$0")/logging.sh"
+
 # Load and export configuration from main.json
 load_configuration() {
     local config_file=$(realpath "config/main.json")
+    log_debug "Loading configuration from $config_file"
     
     export DOMAIN=$(jq -r '.domain' "$config_file")
     export ENABLE_HTTPS=$(jq -r '.enable_https' "$config_file")
@@ -48,9 +51,15 @@ create_lock_file() {
 
 # Main configuration initialization
 initialize_configuration() {
+    log_section "Initializing Configuration"
     load_configuration
+    log_debug "Loaded configuration from main.json"
     setup_protocol_vars
+    log_debug "Setup protocol variables (HTTPS: $ENABLE_HTTPS)"
     setup_service_vars
+    log_debug "Setup service variables"
     setup_directory_vars
+    log_debug "Setup directory variables"
     create_lock_file
+    log_success "Configuration initialized"
 }
