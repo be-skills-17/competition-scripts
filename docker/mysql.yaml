@@ -11,7 +11,7 @@ services:
       - "${CONFIG_DIR}/mysql/competitors.sql:/docker-entrypoint-initdb.d/1.sql"
     labels:
       traefik.enable: "true"
-      traefik.http.routers.competitor-db.rule: HostRegexp(`{_:db\..*}`)
+      traefik.http.routers.competitor-db.rule: Host(`db.${DOMAIN}`)
       traefik.http.services.competitor-db.loadbalancer.server.port: 3306
       wud.watch: false
     ports:
@@ -29,7 +29,7 @@ services:
     restart: always
     labels:
       traefik.enable: "true"
-      traefik.http.routers.pma.rule: HostRegexp(`{_:pma\..*}`)
+      traefik.http.routers.pma.rule: Host(`pma.${DOMAIN}`)
       traefik.http.services.pma.loadbalancer.server.port: 80
       traefik.http.routers.pma.tls: true
       traefik.http.routers.pma.entrypoints: websecure
