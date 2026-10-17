@@ -4,7 +4,6 @@ clean_environment() {
     local do_backup=${1:-true}
 
     load_configuration
-    local config_file=$CONFIG_DIR/main.json
 
     log_section "Cleaning Competition Environment"
 
@@ -27,13 +26,10 @@ clean_environment() {
     rm -rf "$DATA_DIR"
     log_success "Data volumes removed"
 
-    log_subsection "Removing Competitor Images"
-    local username
-    for username in $(jq -r '.competitors[].username' "$config_file"); do
-        log_info "Removing images for competitor: $username"
-        docker images -q --filter "reference=git.$DOMAIN/$username/*" | xargs -r docker rmi -f
+    local name
+    for name in $(service_names_reversed); do
+        run_service_hook "$name" clean
     done
-    log_success "Competitor images removed"
 
     log_subsection "Cleaning up Dynamic Directories"
     rm -rf "$DYNAMIC_DOCKER_DIR"

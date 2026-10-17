@@ -2,34 +2,33 @@
 
 # Maps "service name" -> "compose file"
 declare -gA SERVICE_FILE
-# Maps "group name" (compose file basename) -> "compose file"
+# Maps "group name" (service name) -> "compose file"
 declare -gA GROUP_FILE
 
 build_service_map() {
-    local file group svc
-    while read -r file; do
+    local name file svc
+    for name in $(service_names); do
+        file=$(service_compose_file "$name")
         [ -f "$file" ] || continue
-        group=$(basename "$file" .yaml)
-        GROUP_FILE[$group]=$file
+        GROUP_FILE[$name]=$file
         for svc in $(docker compose -f "$file" config --services 2>/dev/null < /dev/null); do
             SERVICE_FILE[$svc]=$file
         done
-    done < <(compose_files)
-    # Friendly aliases
-    [ -n "${GROUP_FILE[gitea-runner]}" ] && GROUP_FILE[runners]=${GROUP_FILE[gitea-runner]}
+    done
 }
 
 print_available() {
     echo "Available services:"
-    local file
-    while read -r file; do
+    local name file
+    for name in $(service_names); do
+        file=$(service_compose_file "$name")
         [ -f "$file" ] || continue
-        echo -n "  $(basename "$file" .yaml): "
-        docker compose -f "$file" config --services 2>/dev/null < /dev/null | tr '\n' ' '
+        echo -n "  $name: "
+        docker compose -f "$file" config --services 2>/dev/null | tr '\n' ' '
         echo ""
-    done < <(compose_files)
+    done
     echo ""
-    echo "A group name (e.g. 'mysql', 'runners', 'competitors') recreates every service of that file."
+    echo "A group name (e.g. 'mysql', 'runners', 'competitors') recreates every container of that service."
     echo "An exact service name always takes precedence over a group name (e.g. 'gitea' only recreates the gitea container)."
 }
 
@@ -56,7 +55,7 @@ recreate_service() {
 
     # Competitor images are bumped by WUD after the initial 1.0.0; keep the image currently running
     # instead of rolling the competitor back to the tag written in competitors.yaml.
-    if [ "$file" = "$DYNAMIC_DOCKER_DIR/competitors.yaml" ]; then
+    if [ "$file" = "$(service_compose_file competitors)" ]; then
         local running wanted
         running=$(docker inspect "$svc" --format '{{.Config.Image}}' 2>/dev/null)
         wanted=$(docker compose -f "$file" config --format json | jq -r --arg s "$svc" '.services[$s].image')

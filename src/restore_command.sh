@@ -44,13 +44,12 @@ set +a
 export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
 
 log_section "Starting Services"
-while read -r file <&3; do
-    [ -f "$file" ] || continue
-    log_subsection "$(basename "$file" .yaml)"
-    docker compose -f "$file" up -d
-    # Competitor images are pulled from Gitea's registry, it must be up before them
-    [ "$(basename "$file")" = "gitea.yaml" ] && wait_for_gitea
-done 3< <(compose_files)
+# Competitor images are pulled from Gitea's registry: each service waits for the previous ones
+for name in $(service_names); do
+    log_subsection "$name"
+    docker compose -f "$(service_compose_file "$name")" up -d < /dev/null
+    run_service_hook "$name" wait_ready
+done
 
 echo ""
 log_success "Restore complete! 🎉"

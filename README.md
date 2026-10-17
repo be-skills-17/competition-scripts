@@ -105,7 +105,7 @@ Backups are never deleted automatically; remove old ones from `backups/` yoursel
 
 `sudo ./competition.sh recreate <service|group> ...` runs `docker compose up -d --no-deps --force-recreate` on the
 given services only. Run it without arguments to list the available names. A group (`traefik`, `gitea`,
-`runners`, `mysql`, `verdaccio`, `wud`, `competitors`) recreates every service of that compose file; an exact
+`runners`, `mysql`, `verdaccio`, `wud`, `competitors`) recreates every container of that service; an exact
 service name always wins (`gitea` only recreates the Gitea container, not `gitea-db`).
 
 What survives a recreate:
@@ -288,7 +288,7 @@ git --version
 
 ### Services not starting
 - Check Docker is running: `docker ps`
-- View logs: `docker compose -f docker/gitea.yaml logs`
+- View logs: `docker compose -f services/20-gitea/compose.yaml logs`
 - Use verbose mode: `sudo ./competition.sh -v init`
 
 ### Configuration issues
@@ -304,17 +304,19 @@ git --version
 ## Development
 
 `competition.sh` is generated with [bashly](https://bashly.dev) from the sources in `src/`. **Do not edit
-`competition.sh` directly**, edit `src/` and regenerate it.
+`competition.sh` directly**, edit `src/` and regenerate it. The services in `services/` are loaded at runtime
+and need no regeneration.
 
 ```
 bashly-settings.yml        # bashly settings (source dir, production mode)
+services/                  # one directory per service, see "Services" below
 src/
   bashly.yml               # commands, arguments, flags, filters, dependencies and help texts
   initialize.sh            # runs first: loads .env and defines paths
   before.sh                # runs after argument parsing: --verbose
   <command>_command.sh     # one file per command (init, start, recreate, backup...)
   lib/                     # functions shared by the commands
-    services.sh            # the list of compose files, in start order (single source of truth)
+    services.sh            # service discovery, hooks and compose helpers
     filters.sh             # root / initialized checks used by the commands' filters
     logging.sh, config.sh, gitea.sh, frameworks.sh, competitors.sh, backup.sh, clean.sh, recreate.sh...
 ```
@@ -329,4 +331,38 @@ Commit both `src/` and the generated `competition.sh`, so users never need bashl
 
 - Adding a command: declare it in `src/bashly.yml`, run the generate command above; bashly creates
   `src/<command>_command.sh` for you to fill.
-- Adding a service: add its compose file to `docker/` and to `compose_files` in `src/lib/services.sh`.
+
+### Services
+
+Each service is a directory `services/<NN>-<name>/`:
+
+```
+services/
+  10-traefik/      compose.yaml
+  20-gitea/        compose.yaml  service.sh   # wait_ready, post_init (admin, tokens, orgs, frameworks)
+  30-runners/      compose.yaml
+  40-mysql/        compose.yaml  service.sh   # pre_init (competitors.sql)
+  50-verdaccio/    compose.yaml  service.sh   # pre_init (storage permissions)
+  60-wud/          compose.yaml
+  70-competitors/                service.sh   # compose_file (generated), pre_init (users, images), clean (images)
+```
+
+- `NN` is the start order; `stop`, `clean` go in reverse order. `<name>` is the name used by
+  `recreate` and in hook names.
+- `compose.yaml` is the service's compose file.
+- `service.sh` is optional and defines hooks named `service_<name>_<hook>` (dashes in `<name>` become
+  underscores). Every hook is optional:
+
+| Hook | Called by | When |
+|---|---|---|
+| `compose_file` | every command | prints the compose file path, if it is not the service's `compose.yaml` |
+| `pre_init` | `init` | before the first `docker compose up` (generate files, prepare data directories) |
+| `wait_ready` | `init`, `restore` | after `docker compose up`, returns once the service answers |
+| `post_init` | `init` | once the service is ready (create users, import data...) |
+| `clean` | `clean`, `restore` | after the containers are removed, before `data/` is deleted |
+
+`init` runs, for each service in order: `pre_init`, `up -d`, `wait_ready`, `post_init`. A service can use what
+an earlier one prepared: the runners use the registration token created by gitea's `post_init`.
+
+**Adding a service:** create `services/<NN>-<name>/compose.yaml` (and `service.sh` if it needs hooks). Every
+command picks it up, without regenerating `competition.sh`.

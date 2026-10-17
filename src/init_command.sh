@@ -1,41 +1,17 @@
-# Initialize configuration
 initialize_configuration
 
-# Start core infrastructure
-start_core_services
+# Each service: prepare (pre_init), start, wait until it answers, configure (post_init).
+# Order matters: gitea's post_init creates the runner token, the API token and the registry login
+# used by the runners and competitors services after it.
+for name in $(service_names); do
+    log_section "Service: $name"
+    run_service_hook "$name" pre_init
+    docker compose -f "$(service_compose_file "$name")" up -d
+    run_service_hook "$name" wait_ready
+    run_service_hook "$name" post_init
+done
 
-# Wait for Gitea to be ready
-wait_for_gitea
-
-# Create admin user and setup runner
-log_section "Setting up Admin User and Runner"
-create_admin_user "$USERNAME" "$PASSWORD"
-generate_registration_token
-start_runner_services
-
-# Setup Gitea access and organizations
-log_section "Setting up Gitea Access"
-get_personal_access_token
-setup_organizations_and_teams
-
-# Import frameworks
-import_all_frameworks
-setup_docker_registry_credentials
-
-# Setup competitors
-initialize_competitors_config
-process_all_competitors "$CONFIG_FILE"
-finalize_docker_compose_config
-
-# Start services
-start_database_services
-start_supporting_services
-configure_verdaccio_permissions
-start_competitor_services
-
-# Export environment variables
 export_environment_variables "$BASE_DIR/.env"
 
 echo ""
 log_success "All done! Competition environment is ready! 🎉"
-

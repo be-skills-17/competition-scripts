@@ -1,18 +1,65 @@
-# Every compose file of the stack, in start order: traefik creates the "gitea" network the others join,
-# and competitor images are pulled from Gitea's registry, so Gitea comes before them.
+# Services live in services/<NN>-<name>/:
+#   - NN is the start order (stop/down go in reverse order)
+#   - compose.yaml is the service's compose file
+#   - service.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
+#       compose_file  print the compose file path (default: the service's compose.yaml)
+#       pre_init      init only, before the first "docker compose up" (generate files, prepare data dirs)
+#       wait_ready    after "docker compose up" (init, restore): return once the service answers
+#       post_init     init only, once the service is ready (create users, import data...)
+#       clean         clean only, after the containers are removed
+
+# Service names in start order
+service_names() {
+    local dir
+    for dir in "$SERVICES_DIR"/[0-9]*-*/; do
+        [ -d "$dir" ] || continue
+        dir=$(basename "$dir")
+        echo "${dir#*-}"
+    done
+}
+
+service_names_reversed() {
+    service_names | tac
+}
+
+service_dir() {
+    local dir
+    for dir in "$SERVICES_DIR"/[0-9]*-"$1"/; do
+        [ -d "$dir" ] && echo "${dir%/}" && return 0
+    done
+    return 1
+}
+
+# Call service_<name>_<hook> with the remaining arguments, if the service defines it
+run_service_hook() {
+    local name=$1 hook=$2
+    shift 2
+    local fn="service_${name//-/_}_${hook}"
+    if declare -F "$fn" > /dev/null; then
+        "$fn" "$@"
+    fi
+}
+
+service_compose_file() {
+    local file
+    file=$(run_service_hook "$1" compose_file)
+    echo "${file:-$(service_dir "$1")/compose.yaml}"
+}
+
+# Every compose file of the stack, in start order
 compose_files() {
-    printf '%s\n' \
-        "$DOCKER_DIR/traefik.yaml" \
-        "$DOCKER_DIR/gitea.yaml" \
-        "$DOCKER_DIR/gitea-runner.yaml" \
-        "$DOCKER_DIR/mysql.yaml" \
-        "$DOCKER_DIR/verdaccio.yaml" \
-        "$DOCKER_DIR/wud.yaml" \
-        "$DYNAMIC_DOCKER_DIR/competitors.yaml"
+    local name
+    for name in $(service_names); do
+        service_compose_file "$name"
+    done
+}
+
+compose_files_reversed() {
+    compose_files | tac
 }
 
 # Run "docker compose -f <file> <args...>" on every existing compose file.
-# --reverse goes from competitors down to traefik (for stop/down).
+# --reverse goes from the last service down to the first (for stop/down).
 compose_each() {
     local order=compose_files
     if [ "$1" = "--reverse" ]; then
@@ -26,10 +73,6 @@ compose_each() {
         [ -f "$file" ] || continue
         docker compose -f "$file" "$@"
     done 3< <($order)
-}
-
-compose_files_reversed() {
-    compose_files | tac
 }
 
 # Returns 0 if at least one container of the project is running

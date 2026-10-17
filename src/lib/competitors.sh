@@ -1,12 +1,9 @@
-# Initialize competitors configuration files
+# Initialize competitors compose file
 initialize_competitors_config() {
     log_info "Initializing competitors configuration..."
-    
+
     cat <<EOF > $DYNAMIC_DOCKER_DIR/competitors.yaml
 services:
-EOF
-
-    cat <<EOF > $CONFIG_DIR/mysql/competitors.sql
 EOF
 }
 
@@ -15,7 +12,7 @@ add_competitor_module_to_compose() {
     local user=$1
     local module=$2
     local subdomain=$3
-    
+
     cat <<EOF >> $DYNAMIC_DOCKER_DIR/competitors.yaml
   ${user}_${module}:
     image: git.${DOMAIN}/${user}/${module}:1.0.0
@@ -36,28 +33,15 @@ add_competitor_module_to_compose() {
 EOF
 }
 
-# Add competitor module to MySQL configuration
-add_competitor_module_to_sql() {
-    local user=$1
-    local module=$2
-    local pass=$3
-    
-    cat <<EOF >> $CONFIG_DIR/mysql/competitors.sql
-  CREATE DATABASE IF NOT EXISTS \`${user}_${module}\`;
-  CREATE USER IF NOT EXISTS '$user'@'%' IDENTIFIED BY '$pass';
-  GRANT ALL PRIVILEGES ON \`${user}_${module}\`.* TO '$user'@'%';
-EOF
-}
-
 # Push initial container image for competitor module
 push_initial_module_image() {
     local user=$1
     local module=$2
-    
+
     log_debug "Pushing initial container for $user/$module"
     docker tag nginx:latest git.$DOMAIN/$user/$module:1.0.0
     docker tag nginx:latest git.$DOMAIN/$user/$module:latest
-    
+
     run_with_spinner "Pushing initial image for $user/$module..." \
         docker push --all-tags git.$DOMAIN/$user/$module
 }
@@ -67,19 +51,17 @@ process_competitor_module() {
     local user=$1
     local module=$2
     local subdomain=$3
-    local pass=$4
-    
+
     log_debug "Processing module: $module for $user"
-    
+
     add_competitor_module_to_compose "$user" "$module" "$subdomain"
-    add_competitor_module_to_sql "$user" "$module" "$pass"
     push_initial_module_image "$user" "$module"
 }
 
 # Process a single competitor
 process_competitor() {
     local config_row=$1
-    
+
     _jq() {
         echo ${config_row} | base64 --decode | jq -r ${1}
     }
@@ -87,25 +69,25 @@ process_competitor() {
     local username=$(_jq '.username')
     local password=$(_jq '.password')
     local subdomain=$(_jq '.subdomain')
-    
+
     log_subsection "Competitor: $(_jq '.name')"
     log_info "Creating Gitea user: $username (subdomain: $subdomain)"
-    
+
     create_competitor_user "$username" "$password"
     add_competitor_to_team "frameworks" "competitors" "$username"
     create_user_secrets "$username" "$password"
-    
+
     for module in $MODULES; do
-        process_competitor_module "$username" "$module" "$subdomain" "$password"
+        process_competitor_module "$username" "$module" "$subdomain"
     done
 }
 
 # Process all competitors from configuration file
 process_all_competitors() {
     local config_file=$1
-    
+
     log_section "Processing All Competitors"
-    
+
     for row in $(jq -r '.competitors[] | @base64' "$config_file"); do
         process_competitor "$row"
     done

@@ -1,9 +1,9 @@
 # Export all environment variables to .env file
 export_environment_variables() {
     local output_file=${1:-$BASE_DIR/.env}
-    
+
     log_info "Exporting environment variables to $output_file"
-    
+
     cat <<EOF > "$output_file"
 DOMAIN="$DOMAIN"
 ENABLE_HTTPS="$ENABLE_HTTPS"
@@ -20,7 +20,7 @@ GITEA_TOKEN="$GITEA_TOKEN"
 REGISTRATION_TOKEN="$REGISTRATION_TOKEN"
 BASE_DIR="$BASE_DIR"
 CONFIG_DIR="$CONFIG_DIR"
-DOCKER_DIR="$DOCKER_DIR"
+SERVICES_DIR="$SERVICES_DIR"
 DATA_DIR="$DATA_DIR"
 DYNAMIC_DOCKER_DIR="$DYNAMIC_DOCKER_DIR"
 DYNAMIC_FRAMEWORKS_DIR="$DYNAMIC_FRAMEWORKS_DIR"

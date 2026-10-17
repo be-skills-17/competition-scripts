@@ -12,7 +12,7 @@ fi
 # Paths are always derived from the script location, never from .env or the current directory
 export BASE_DIR
 export CONFIG_DIR=$BASE_DIR/config
-export DOCKER_DIR=$BASE_DIR/docker
+export SERVICES_DIR=$BASE_DIR/services
 export DATA_DIR=$BASE_DIR/data
 export BACKUP_DIR=$BASE_DIR/backups
 export LOCK_FILE=$BASE_DIR/competition.lock
@@ -29,3 +29,9 @@ fi
 
 export VERBOSE=false
 export REDIRECT=/dev/null
+
+# Service hooks (see src/lib/services.sh), loaded at runtime: adding a service needs no regeneration
+for service_file in "$SERVICES_DIR"/*/service.sh; do
+    # shellcheck disable=SC1090
+    [ -f "$service_file" ] && source "$service_file"
+done

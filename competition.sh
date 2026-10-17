@@ -346,7 +346,6 @@ clean_environment() {
     local do_backup=${1:-true}
 
     load_configuration
-    local config_file=$CONFIG_DIR/main.json
 
     log_section "Cleaning Competition Environment"
 
@@ -369,13 +368,10 @@ clean_environment() {
     rm -rf "$DATA_DIR"
     log_success "Data volumes removed"
 
-    log_subsection "Removing Competitor Images"
-    local username
-    for username in $(jq -r '.competitors[].username' "$config_file"); do
-        log_info "Removing images for competitor: $username"
-        docker images -q --filter "reference=git.$DOMAIN/$username/*" | xargs -r docker rmi -f
+    local name
+    for name in $(service_names_reversed); do
+        run_service_hook "$name" clean
     done
-    log_success "Competitor images removed"
 
     log_subsection "Cleaning up Dynamic Directories"
     rm -rf "$DYNAMIC_DOCKER_DIR"
@@ -387,15 +383,12 @@ clean_environment() {
     log_success "Clean complete! Environment reset. 🧹"
 }
 
-# Initialize competitors configuration files
+# Initialize competitors compose file
 initialize_competitors_config() {
     log_info "Initializing competitors configuration..."
 
     cat <<EOF > $DYNAMIC_DOCKER_DIR/competitors.yaml
 services:
-EOF
-
-    cat <<EOF > $CONFIG_DIR/mysql/competitors.sql
 EOF
 }
 
@@ -425,19 +418,6 @@ add_competitor_module_to_compose() {
 EOF
 }
 
-# Add competitor module to MySQL configuration
-add_competitor_module_to_sql() {
-    local user=$1
-    local module=$2
-    local pass=$3
-
-    cat <<EOF >> $CONFIG_DIR/mysql/competitors.sql
-  CREATE DATABASE IF NOT EXISTS \`${user}_${module}\`;
-  CREATE USER IF NOT EXISTS '$user'@'%' IDENTIFIED BY '$pass';
-  GRANT ALL PRIVILEGES ON \`${user}_${module}\`.* TO '$user'@'%';
-EOF
-}
-
 # Push initial container image for competitor module
 push_initial_module_image() {
     local user=$1
@@ -456,12 +436,10 @@ process_competitor_module() {
     local user=$1
     local module=$2
     local subdomain=$3
-    local pass=$4
 
     log_debug "Processing module: $module for $user"
 
     add_competitor_module_to_compose "$user" "$module" "$subdomain"
-    add_competitor_module_to_sql "$user" "$module" "$pass"
     push_initial_module_image "$user" "$module"
 }
 
@@ -485,7 +463,7 @@ process_competitor() {
     create_user_secrets "$username" "$password"
 
     for module in $MODULES; do
-        process_competitor_module "$username" "$module" "$subdomain" "$password"
+        process_competitor_module "$username" "$module" "$subdomain"
     done
 }
 
@@ -570,90 +548,6 @@ initialize_configuration() {
     log_success "Configuration initialized"
 }
 
-# Start a Docker Compose service
-docker_compose() {
-    local file="$1"
-    log_info "Starting service from $file"
-    docker compose -f $DOCKER_DIR/${file} up -d
-
-}
-
-# Poll Gitea until it answers, returns 1 after the last retry
-poll_gitea() {
-    local retries=10
-    local wait=5
-    local count=0
-
-    until curl -s http://localhost:3000/api/v1/version > /dev/null; do
-        if [ $count -ge $retries ]; then
-            return 1
-        fi
-        log_debug "Gitea health check attempt $((count + 1))/$retries"
-        sleep $wait
-        count=$((count + 1))
-    done
-}
-
-# Wait for Gitea to be ready
-wait_for_gitea() {
-    if ! run_with_spinner "Waiting for Gitea to be ready..." poll_gitea; then
-        log_error "Gitea did not become ready in time."
-        exit 1
-    fi
-    log_success "Gitea is ready"
-}
-
-# Start core infrastructure services
-start_core_services() {
-    log_section "Starting Core Infrastructure"
-    log_subsection "Traefik"
-    docker_compose "traefik.yaml"
-
-    log_subsection "Gitea"
-    docker_compose "gitea.yaml"
-    log_success "Core infrastructure started"
-}
-
-# Start runner service
-start_runner_services() {
-    log_section "Starting Gitea Runner"
-    docker_compose "gitea-runner.yaml"
-    log_success "Gitea Runner started"
-}
-
-# Start database service
-start_database_services() {
-    log_section "Starting Database"
-    docker_compose "mysql.yaml"
-    log_success "MySQL started"
-}
-
-# Start supporting services
-start_supporting_services() {
-    log_section "Starting Supporting Services"
-    log_subsection "Verdaccio (NPM Registry)"
-    docker_compose "verdaccio.yaml"
-
-    log_subsection "WUD (What's Up Docker)"
-    docker_compose "wud.yaml"
-    log_success "Supporting services started"
-}
-
-# Start competitor containers
-start_competitor_services() {
-    log_section "Starting Competitor Containers"
-    docker compose -f $DYNAMIC_DOCKER_DIR/competitors.yaml up -d
-    log_success "Competitor containers started"
-}
-
-# Configure Verdaccio permissions
-configure_verdaccio_permissions() {
-    log_info "Configuring Verdaccio permissions..."
-    mkdir -p ${DATA_DIR}/verdaccio
-    chmod 777 -R ${DATA_DIR}/verdaccio
-    log_success "Verdaccio permissions configured"
-}
-
 # Export all environment variables to .env file
 export_environment_variables() {
     local output_file=${1:-$BASE_DIR/.env}
@@ -676,7 +570,7 @@ GITEA_TOKEN="$GITEA_TOKEN"
 REGISTRATION_TOKEN="$REGISTRATION_TOKEN"
 BASE_DIR="$BASE_DIR"
 CONFIG_DIR="$CONFIG_DIR"
-DOCKER_DIR="$DOCKER_DIR"
+SERVICES_DIR="$SERVICES_DIR"
 DATA_DIR="$DATA_DIR"
 DYNAMIC_DOCKER_DIR="$DYNAMIC_DOCKER_DIR"
 DYNAMIC_FRAMEWORKS_DIR="$DYNAMIC_FRAMEWORKS_DIR"
@@ -1134,34 +1028,33 @@ run_with_spinner() {
 
 # Maps "service name" -> "compose file"
 declare -gA SERVICE_FILE
-# Maps "group name" (compose file basename) -> "compose file"
+# Maps "group name" (service name) -> "compose file"
 declare -gA GROUP_FILE
 
 build_service_map() {
-    local file group svc
-    while read -r file; do
+    local name file svc
+    for name in $(service_names); do
+        file=$(service_compose_file "$name")
         [ -f "$file" ] || continue
-        group=$(basename "$file" .yaml)
-        GROUP_FILE[$group]=$file
+        GROUP_FILE[$name]=$file
         for svc in $(docker compose -f "$file" config --services 2>/dev/null < /dev/null); do
             SERVICE_FILE[$svc]=$file
         done
-    done < <(compose_files)
-    # Friendly aliases
-    [ -n "${GROUP_FILE[gitea-runner]}" ] && GROUP_FILE[runners]=${GROUP_FILE[gitea-runner]}
+    done
 }
 
 print_available() {
     echo "Available services:"
-    local file
-    while read -r file; do
+    local name file
+    for name in $(service_names); do
+        file=$(service_compose_file "$name")
         [ -f "$file" ] || continue
-        echo -n "  $(basename "$file" .yaml): "
-        docker compose -f "$file" config --services 2>/dev/null < /dev/null | tr '\n' ' '
+        echo -n "  $name: "
+        docker compose -f "$file" config --services 2>/dev/null | tr '\n' ' '
         echo ""
-    done < <(compose_files)
+    done
     echo ""
-    echo "A group name (e.g. 'mysql', 'runners', 'competitors') recreates every service of that file."
+    echo "A group name (e.g. 'mysql', 'runners', 'competitors') recreates every container of that service."
     echo "An exact service name always takes precedence over a group name (e.g. 'gitea' only recreates the gitea container)."
 }
 
@@ -1188,7 +1081,7 @@ recreate_service() {
 
     # Competitor images are bumped by WUD after the initial 1.0.0; keep the image currently running
     # instead of rolling the competitor back to the tag written in competitors.yaml.
-    if [ "$file" = "$DYNAMIC_DOCKER_DIR/competitors.yaml" ]; then
+    if [ "$file" = "$(service_compose_file competitors)" ]; then
         local running wanted
         running=$(docker inspect "$svc" --format '{{.Config.Image}}' 2>/dev/null)
         wanted=$(docker compose -f "$file" config --format json | jq -r --arg s "$svc" '.services[$s].image')
@@ -1207,21 +1100,68 @@ recreate_service() {
     return $status
 }
 
-# Every compose file of the stack, in start order: traefik creates the "gitea" network the others join,
-# and competitor images are pulled from Gitea's registry, so Gitea comes before them.
+# Services live in services/<NN>-<name>/:
+#   - NN is the start order (stop/down go in reverse order)
+#   - compose.yaml is the service's compose file
+#   - service.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
+#       compose_file  print the compose file path (default: the service's compose.yaml)
+#       pre_init      init only, before the first "docker compose up" (generate files, prepare data dirs)
+#       wait_ready    after "docker compose up" (init, restore): return once the service answers
+#       post_init     init only, once the service is ready (create users, import data...)
+#       clean         clean only, after the containers are removed
+
+# Service names in start order
+service_names() {
+    local dir
+    for dir in "$SERVICES_DIR"/[0-9]*-*/; do
+        [ -d "$dir" ] || continue
+        dir=$(basename "$dir")
+        echo "${dir#*-}"
+    done
+}
+
+service_names_reversed() {
+    service_names | tac
+}
+
+service_dir() {
+    local dir
+    for dir in "$SERVICES_DIR"/[0-9]*-"$1"/; do
+        [ -d "$dir" ] && echo "${dir%/}" && return 0
+    done
+    return 1
+}
+
+# Call service_<name>_<hook> with the remaining arguments, if the service defines it
+run_service_hook() {
+    local name=$1 hook=$2
+    shift 2
+    local fn="service_${name//-/_}_${hook}"
+    if declare -F "$fn" > /dev/null; then
+        "$fn" "$@"
+    fi
+}
+
+service_compose_file() {
+    local file
+    file=$(run_service_hook "$1" compose_file)
+    echo "${file:-$(service_dir "$1")/compose.yaml}"
+}
+
+# Every compose file of the stack, in start order
 compose_files() {
-    printf '%s\n' \
-        "$DOCKER_DIR/traefik.yaml" \
-        "$DOCKER_DIR/gitea.yaml" \
-        "$DOCKER_DIR/gitea-runner.yaml" \
-        "$DOCKER_DIR/mysql.yaml" \
-        "$DOCKER_DIR/verdaccio.yaml" \
-        "$DOCKER_DIR/wud.yaml" \
-        "$DYNAMIC_DOCKER_DIR/competitors.yaml"
+    local name
+    for name in $(service_names); do
+        service_compose_file "$name"
+    done
+}
+
+compose_files_reversed() {
+    compose_files | tac
 }
 
 # Run "docker compose -f <file> <args...>" on every existing compose file.
-# --reverse goes from competitors down to traefik (for stop/down).
+# --reverse goes from the last service down to the first (for stop/down).
 compose_each() {
     local order=compose_files
     if [ "$1" = "--reverse" ]; then
@@ -1235,10 +1175,6 @@ compose_each() {
         [ -f "$file" ] || continue
         docker compose -f "$file" "$@"
     done 3< <($order)
-}
-
-compose_files_reversed() {
-    compose_files | tac
 }
 
 # Returns 0 if at least one container of the project is running
@@ -1364,42 +1300,19 @@ competition.sh_setup_command() {
 
 competition.sh_init_command() {
 
-  # Initialize configuration
   initialize_configuration
 
-  # Start core infrastructure
-  start_core_services
+  # Each service: prepare (pre_init), start, wait until it answers, configure (post_init).
+  # Order matters: gitea's post_init creates the runner token, the API token and the registry login
+  # used by the runners and competitors services after it.
+  for name in $(service_names); do
+      log_section "Service: $name"
+      run_service_hook "$name" pre_init
+      docker compose -f "$(service_compose_file "$name")" up -d
+      run_service_hook "$name" wait_ready
+      run_service_hook "$name" post_init
+  done
 
-  # Wait for Gitea to be ready
-  wait_for_gitea
-
-  # Create admin user and setup runner
-  log_section "Setting up Admin User and Runner"
-  create_admin_user "$USERNAME" "$PASSWORD"
-  generate_registration_token
-  start_runner_services
-
-  # Setup Gitea access and organizations
-  log_section "Setting up Gitea Access"
-  get_personal_access_token
-  setup_organizations_and_teams
-
-  # Import frameworks
-  import_all_frameworks
-  setup_docker_registry_credentials
-
-  # Setup competitors
-  initialize_competitors_config
-  process_all_competitors "$CONFIG_FILE"
-  finalize_docker_compose_config
-
-  # Start services
-  start_database_services
-  start_supporting_services
-  configure_verdaccio_permissions
-  start_competitor_services
-
-  # Export environment variables
   export_environment_variables "$BASE_DIR/.env"
 
   echo ""
@@ -1556,13 +1469,12 @@ competition.sh_restore_command() {
   export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
 
   log_section "Starting Services"
-  while read -r file <&3; do
-      [ -f "$file" ] || continue
-      log_subsection "$(basename "$file" .yaml)"
-      docker compose -f "$file" up -d
-      # Competitor images are pulled from Gitea's registry, it must be up before them
-      [ "$(basename "$file")" = "gitea.yaml" ] && wait_for_gitea
-  done 3< <(compose_files)
+  # Competitor images are pulled from Gitea's registry: each service waits for the previous ones
+  for name in $(service_names); do
+      log_subsection "$name"
+      docker compose -f "$(service_compose_file "$name")" up -d < /dev/null
+      run_service_hook "$name" wait_ready
+  done
 
   echo ""
   log_success "Restore complete! 🎉"
@@ -2514,7 +2426,7 @@ initialize() {
   # Paths are always derived from the script location, never from .env or the current directory
   export BASE_DIR
   export CONFIG_DIR=$BASE_DIR/config
-  export DOCKER_DIR=$BASE_DIR/docker
+  export SERVICES_DIR=$BASE_DIR/services
   export DATA_DIR=$BASE_DIR/data
   export BACKUP_DIR=$BASE_DIR/backups
   export LOCK_FILE=$BASE_DIR/competition.lock
@@ -2531,6 +2443,12 @@ initialize() {
 
   export VERBOSE=false
   export REDIRECT=/dev/null
+
+  # Service hooks (see src/lib/services.sh), loaded at runtime: adding a service needs no regeneration
+  for service_file in "$SERVICES_DIR"/*/service.sh; do
+      # shellcheck disable=SC1090
+      [ -f "$service_file" ] && source "$service_file"
+  done
 
 }
 
