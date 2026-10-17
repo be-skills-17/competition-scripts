@@ -98,8 +98,10 @@ validate_configuration() {
         end
     ' "$config_file"
 
-    # The api.json files are checked once main.json is valid (their host names depend on it)
-    local main_errors
-    main_errors=$(jq -r '.competitors | type' "$config_file")
-    [ "$main_errors" = "array" ] && validate_apis
+    # Each service checks its own configuration (validate hook), once main.json can be read (competitors...)
+    [ "$(jq -r '.competitors | type' "$config_file")" = "array" ] || return 0
+    local name
+    for name in $(service_names); do
+        run_service_hook "$name" validate
+    done
 }

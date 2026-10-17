@@ -8,6 +8,7 @@
 #       wait_ready    after "docker compose up" (init, restore): return once the service answers
 #       post_init     init only, once the service is ready (create users, import data...)
 #       clean         clean only, after the containers are removed
+#       validate      check-config and the valid_config filter: print one line per problem in the service's config
 
 # Service names in start order
 service_names() {

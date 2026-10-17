@@ -29,6 +29,7 @@ services/
 
 | Hook | Called by | When |
 |---|---|---|
+| `validate` | `check-config`, `init`, `import-frameworks`, `deploy-apis`... | prints one line per problem in the service's own configuration (e.g. `api.json` files) |
 | `compose_file` | every command | prints the compose file path, if it is not the service's `compose.yaml` |
 | `pre_init` | `init` | before the first `docker compose up` (generate files, prepare data directories) |
 | `pre_up` | `init`, `restore`, `recreate` | before every `docker compose up` (files the containers mount) |

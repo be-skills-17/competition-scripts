@@ -94,7 +94,7 @@ setup() {
 @test "the filter formats every problem as a list" {
     edit_config '.enable_https = "yes" | .domain = ""'
     run filter_valid_config
-    [ "${lines[0]}" = "Invalid config/main.json:" ]
+    [ "${lines[0]}" = "Invalid configuration:" ]
     [ "${lines[1]}" = "  - domain: required (e.g. \"local.skill17.com\")" ]
     [ "${lines[2]}" = "  - enable_https: must be true or false" ]
 }

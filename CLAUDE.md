@@ -39,13 +39,14 @@ tests/                    run.sh, *.bats, test_helper.bash, fixtures/main.json, 
 - **Services**: `src/lib/services.sh` lists `services/[0-9]*-*/` in NN order (stop/clean reverse). Hooks are plain
   functions `service_<name>_<hook>` (dashes -> underscores) called through `run_service_hook` with a *computed*
   name, so grepping a hook name finds no caller. Hooks: `compose_file`, `pre_init`, `pre_up`, `wait_ready`, `post_init`,
-  `clean`. `init` = for each service: pre_init, `up -d`, wait_ready, post_init (gitea's post_init creates the
+  `clean`, `validate`. `init` = for each service: pre_init, `up -d`, wait_ready, post_init (gitea's post_init creates the
   runner token, the API token and the registry login used by later services). Services whose compose file is
   generated (`competitors`, `apis`) return it from `compose_file`; `apis` writes none when no API is enabled.
 - **Config / .env**: `init` computes values from `main.json` and saves them to `.env` (domain, credentials,
   GITEA_TOKEN, REGISTRATION_TOKEN...). Paths are never saved: `set_paths` derives them from the script location;
   `load_env_file` re-applies them after sourcing because old `.env`/backups still contain paths.
-- **Validation**: `validate_configuration` (`src/lib/config.sh`, jq) + `validate_apis` (`src/lib/apis.sh`). Names
+- **Validation**: `validate_configuration` (`src/lib/config.sh`, jq) checks main.json, then calls every service's
+  `validate` hook (the APIs check their api.json in `services/75-apis/service.sh`). Names
   (usernames, subdomains, modules, API names) are `^[a-z0-9][a-z0-9-]*$` (DNS, image paths); passwords reject
   quotes, backslashes and control chars (inserted raw into SQL/JSON, read back via `@tsv`).
 - **APIs**: one `php:<v>-apache` container per enabled API and competitor (`<username>_<name>`), code mounted

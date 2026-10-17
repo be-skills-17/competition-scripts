@@ -18,6 +18,6 @@ filter_valid_config() {
     local errors
     errors=$(validate_configuration)
     if [ -n "$errors" ]; then
-        printf 'Invalid config/main.json:\n%s\n' "$(sed 's/^/  - /' <<< "$errors")"
+        printf 'Invalid configuration:\n%s\n' "$(sed 's/^/  - /' <<< "$errors")"
     fi
 }
