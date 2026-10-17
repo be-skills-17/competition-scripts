@@ -33,6 +33,7 @@ set_paths() {
     # Generated files
     export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
     export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
+    export DYNAMIC_DASHBOARD_DIR=$BASE_DIR/dynamic/dashboard
 }
 
 # Load .env, then set the paths again: .env files written by older versions (and old backups) still

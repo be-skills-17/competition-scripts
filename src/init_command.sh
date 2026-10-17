@@ -6,6 +6,7 @@ initialize_configuration
 for name in $(service_names); do
     log_section "Service: $name"
     run_service_hook "$name" pre_init
+    run_service_hook "$name" pre_up
     compose_file=$(service_compose_file "$name")
     # pre_init may decide there is nothing to start (e.g. no API enabled)
     if [ ! -f "$compose_file" ]; then

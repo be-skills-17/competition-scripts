@@ -4,6 +4,7 @@
 #   - service.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
 #       compose_file  print the compose file path (default: the service's compose.yaml)
 #       pre_init      init only, before the first "docker compose up" (generate files, prepare data dirs)
+#       pre_up        before every "docker compose up" (init, restore, recreate): files the containers mount
 #       wait_ready    after "docker compose up" (init, restore): return once the service answers
 #       post_init     init only, once the service is ready (create users, import data...)
 #       clean         clean only, after the containers are removed
@@ -44,6 +45,14 @@ service_compose_file() {
     local file
     file=$(run_service_hook "$1" compose_file)
     echo "${file:-$(service_dir "$1")/compose.yaml}"
+}
+
+# Name of the service owning a compose file (empty if none)
+service_name_for_file() {
+    local name
+    for name in $(service_names); do
+        [ "$(service_compose_file "$name")" = "$1" ] && echo "$name" && return 0
+    done
 }
 
 # Every compose file of the stack, in start order

@@ -1,0 +1,20 @@
+# Glances: server metrics (CPU, memory, load, disk, containers) for the dashboard.
+# API only (no web UI) and not routed by Traefik: only the dashboard reaches it, through the gitea network.
+services:
+  glances:
+    image: nicolargo/glances:4.3.3
+    container_name: glances
+    restart: unless-stopped
+    pid: host                       # sees the host's processes, not only the container's
+    environment:
+      - GLANCES_OPT=-w --disable-webui
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro   # per-container stats
+    networks:
+      - gitea
+    labels:
+      wud.watch: "false"
+
+networks:
+  gitea:
+    external: true

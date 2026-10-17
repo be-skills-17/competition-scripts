@@ -67,6 +67,7 @@ recreate_service() {
         fi
     fi
 
+    run_service_hook "$(service_name_for_file "$file")" pre_up
     remove_untracked_container "$file" "$svc"
     docker compose "${files[@]}" up -d --no-deps --force-recreate "$svc"
     local status=$?

@@ -39,6 +39,7 @@ for name in $(service_names); do
     compose_file=$(service_compose_file "$name")
     [ -f "$compose_file" ] || continue
     log_subsection "$name"
+    run_service_hook "$name" pre_up
     docker compose -f "$compose_file" up -d < /dev/null
     run_service_hook "$name" wait_ready
 done

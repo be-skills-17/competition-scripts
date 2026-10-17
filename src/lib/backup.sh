@@ -1,6 +1,6 @@
 # Everything needed to bring an environment back, relative to $BASE_DIR.
 # Competitor images live in Gitea's container registry, so they are inside data/gitea.
-BACKUP_ITEMS=(data config dynamic/docker .env competition.lock)
+BACKUP_ITEMS=(data config dynamic/docker dynamic/dashboard .env competition.lock)
 
 # Write the given items (relative to $BASE_DIR) into a root-only archive.
 # --numeric-owner: keep container uids (mysql 999, gitea 1000, verdaccio 10001) even if the host maps

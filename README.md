@@ -34,6 +34,7 @@ sudo ./competition.sh init           # create and start everything
 | [Frameworks](docs/frameworks.md) | Re-importing the framework templates into Gitea |
 | [npm packages](docs/npm.md) | npmjs cut off by default, templates' dependencies cached (`prefetch-npm`, `npm-proxy`) |
 | [Provided APIs](docs/apis.md) | Native PHP APIs deployed for every competitor (`deploy-apis`, `reset-api`) |
+| [Dashboard](docs/dashboard.md) | Local dashboard (http://localhost:8090): competitors, services, server metrics |
 | [Backup and restore](docs/backup-restore.md) | `backup`, `restore`, and the backup made by `clean` |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems |
 

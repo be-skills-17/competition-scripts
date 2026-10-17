@@ -630,7 +630,7 @@ validate_apis() {
 
 # Everything needed to bring an environment back, relative to $BASE_DIR.
 # Competitor images live in Gitea's container registry, so they are inside data/gitea.
-BACKUP_ITEMS=(data config dynamic/docker .env competition.lock)
+BACKUP_ITEMS=(data config dynamic/docker dynamic/dashboard .env competition.lock)
 
 # Write the given items (relative to $BASE_DIR) into a root-only archive.
 # --numeric-owner: keep container uids (mysql 999, gitea 1000, verdaccio 10001) even if the host maps
@@ -721,6 +721,7 @@ clean_environment() {
 
     log_subsection "Cleaning up Dynamic Directories"
     rm -rf "$DYNAMIC_DOCKER_DIR"
+    rm -rf "$DYNAMIC_DASHBOARD_DIR"
     rm -rf "$DYNAMIC_FRAMEWORKS_DIR"
     rm -f "$LOCK_FILE"
     log_success "Dynamic directories cleaned"
@@ -971,6 +972,7 @@ set_paths() {
     # Generated files
     export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
     export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
+    export DYNAMIC_DASHBOARD_DIR=$BASE_DIR/dynamic/dashboard
 }
 
 # Load .env, then set the paths again: .env files written by older versions (and old backups) still
@@ -1510,6 +1512,7 @@ recreate_service() {
         fi
     fi
 
+    run_service_hook "$(service_name_for_file "$file")" pre_up
     remove_untracked_container "$file" "$svc"
     docker compose "${files[@]}" up -d --no-deps --force-recreate "$svc"
     local status=$?
@@ -1523,6 +1526,7 @@ recreate_service() {
 #   - service.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
 #       compose_file  print the compose file path (default: the service's compose.yaml)
 #       pre_init      init only, before the first "docker compose up" (generate files, prepare data dirs)
+#       pre_up        before every "docker compose up" (init, restore, recreate): files the containers mount
 #       wait_ready    after "docker compose up" (init, restore): return once the service answers
 #       post_init     init only, once the service is ready (create users, import data...)
 #       clean         clean only, after the containers are removed
@@ -1563,6 +1567,14 @@ service_compose_file() {
     local file
     file=$(run_service_hook "$1" compose_file)
     echo "${file:-$(service_dir "$1")/compose.yaml}"
+}
+
+# Name of the service owning a compose file (empty if none)
+service_name_for_file() {
+    local name
+    for name in $(service_names); do
+        [ "$(service_compose_file "$name")" = "$1" ] && echo "$name" && return 0
+    done
 }
 
 # Every compose file of the stack, in start order
@@ -1738,6 +1750,7 @@ competition.sh_init_command() {
   for name in $(service_names); do
       log_section "Service: $name"
       run_service_hook "$name" pre_init
+      run_service_hook "$name" pre_up
       compose_file=$(service_compose_file "$name")
       # pre_init may decide there is nothing to start (e.g. no API enabled)
       if [ ! -f "$compose_file" ]; then
@@ -1987,6 +2000,7 @@ competition.sh_restore_command() {
       compose_file=$(service_compose_file "$name")
       [ -f "$compose_file" ] || continue
       log_subsection "$name"
+      run_service_hook "$name" pre_up
       docker compose -f "$compose_file" up -d < /dev/null
       run_service_hook "$name" wait_ready
   done
