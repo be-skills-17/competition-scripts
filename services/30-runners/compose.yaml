@@ -1,6 +1,6 @@
 services:
   runner1: &runner
-    image: gitea/act_runner:latest
+    image: gitea/act_runner:0.2.13
     networks:
       - gitea
     environment: &runner_env

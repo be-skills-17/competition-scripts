@@ -1,6 +1,6 @@
 services:
   whatsupdocker:
-    image: getwud/wud
+    image: getwud/wud:9.4.1
     container_name: wud
     restart: unless-stopped
     environment:

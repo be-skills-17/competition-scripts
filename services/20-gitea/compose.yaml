@@ -29,7 +29,7 @@ services:
 
   gitea-db:
     container_name: gitea-db
-    image: mysql:8
+    image: mysql:8.4.6
     restart: always
     networks:
       - gitea

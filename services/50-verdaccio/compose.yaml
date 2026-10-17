@@ -1,6 +1,6 @@
 services:
   verdaccio:
-    image: verdaccio/verdaccio
+    image: verdaccio/verdaccio:6.2.1
     container_name: "verdaccio"
     labels:
       traefik.enable: "true"
