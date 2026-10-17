@@ -33,9 +33,22 @@ function competitor_view(array $portal, string $username): array
         'name' => $competitor['name'],
         'password' => $competitor['password'],
         'modules' => $modules,
-        'templates' => $missing ? framework_templates($username, $competitor['password'], $portal['frameworks'] ?? null) : [],
+        'templates' => $missing ? with_logos(framework_templates($username, $competitor['password'], $portal['frameworks'] ?? null)) : [],
         'apis' => $competitor['apis'],
     ];
+}
+
+// Templates with their logo, public/img/frameworks/<name>.svg (null when there is none): [{name, logo}]
+function with_logos(?array $templates): ?array
+{
+    if ($templates === null) {
+        return null;
+    }
+    return array_map(function (string $name) {
+        $path = '/img/frameworks/' . $name . '.svg';
+        $exists = preg_match('/^[A-Za-z0-9._-]+$/', $name) && is_file($_SERVER['DOCUMENT_ROOT'] . $path);
+        return ['name' => $name, 'logo' => $exists ? asset($path) : null];
+    }, $templates);
 }
 
 // "Créer" / "Supprimer" of a module's repository (forms of sections/modules): the message to show

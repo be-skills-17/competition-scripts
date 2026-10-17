@@ -45,7 +45,13 @@
         Gitea avec son code : Dockerfile, workflow de déploiement et .npmrc compris.</p>
       <div class="choices">
         <?php foreach ($templates as $template): ?>
-          <label class="choice"><input type="radio" name="template" value="<?= e($template) ?>" required><span><?= e($template) ?></span></label>
+          <label class="choice">
+            <input type="radio" name="template" value="<?= e($template['name']) ?>" required>
+            <span>
+              <?= $template['logo'] ? '<img src="' . e($template['logo']) . '" alt="">' : icon('code') ?>
+              <?= e(ucfirst($template['name'])) ?>
+            </span>
+          </label>
         <?php endforeach ?>
       </div>
     <?php endif ?>

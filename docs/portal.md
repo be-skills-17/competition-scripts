@@ -33,6 +33,10 @@ A module whose repository is missing has a **Créer** button: a popup lists the 
 repository `<username>/<module>` from the chosen one (Gitea's "Use this template", with its content). The
 repository always gets the module's name.
 
+Each template is shown with its logo, `public/img/frameworks/<template>.svg` (from [Simple Icons](https://simpleicons.org),
+CC0, filled with the brand color). A template without a logo gets a generic `</>` icon: to add one, drop
+`<template>.svg` in that folder (served at once, no restart).
+
 A created repository has a **Supprimer** button: the popup asks to type `Valider` (checked by the browser and
 again by the portal), then deletes the repository in Gitea. This cannot be undone.
 
@@ -68,6 +72,7 @@ services/85-portal/
     assets/portal.css        styles
     assets/portal.js         tooltip, copy / reveal buttons, repository popups
     img/, logo.svg           service icons and logo (not in img/icons: Apache reserves /icons/)
+    img/frameworks/          logos of the framework templates (<template>.svg)
     dashboard/index.php      same page at /dashboard/ (see above)
 ```
 
