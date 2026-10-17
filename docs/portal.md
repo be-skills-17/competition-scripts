@@ -31,10 +31,31 @@ login, forms carry a CSRF token, and the session cookie is `HttpOnly`, `SameSite
 `/dashboard/` shows the portal too: the domain used to serve the Traefik dashboard, whose `/` answered a
 permanent redirect to `/dashboard/` that browsers keep in cache (`public/dashboard/index.php`).
 
-## Editing
+## Code layout
 
-`services/85-portal/public/index.php` (and `logo.svg`): changes are served at once, the folder is mounted
-read-only. Changing `config/main.json` (competitors, modules): `sudo ./competition.sh recreate portal`.
+Plain PHP, no framework and no build. Changes are served at once (both folders are mounted read-only).
+
+```
+services/85-portal/
+  app/                       PHP code, outside the document root (never reachable by URL)
+    bootstrap.php            loads lib/, starts the session, reads portal.json
+    lib/session.php          session cookie, CSRF token, redirect after POST
+    lib/auth.php             login / logout / logged-in competitor
+    lib/gitea.php            repositories owned by the competitor (Gitea API, their own credentials)
+    lib/competitor.php       what a logged-in competitor sees (repository state, clone URLs...): templates
+                             only display values computed here
+    lib/view.php             escaping, render(), icons, copy buttons, section bands
+    templates/               HTML only: layout, login, home, sections/{access,modules,apis}
+  public/                    document root
+    index.php                entry point: handles the login/logout POST, renders the layout
+    assets/portal.css        styles
+    assets/portal.js         tooltip and copy / reveal buttons
+    img/, logo.svg           service icons and logo (not in img/icons: Apache reserves /icons/)
+    dashboard/index.php      same page at /dashboard/ (see above)
+```
+
+To add a section: compute its values in `competitor_view()` (`lib/competitor.php`), add a template in
+`templates/sections/` and render it from `templates/home.php`. Changing `config/main.json` (competitors, modules): `sudo ./competition.sh recreate portal`.
 
 ## Existing installation
 

@@ -69,6 +69,6 @@ portal() {
 
 @test "the portal asks Gitea on the internal network for the repositories" {
     grep -q 'GITEA_API_URL: http://gitea:3000/api/v1' "$SERVICES_DIR/85-portal/compose.yaml"
-    grep -q "getenv('GITEA_API_URL')" "$SERVICES_DIR/85-portal/public/index.php"
+    grep -q "getenv('GITEA_API_URL')" "$SERVICES_DIR/85-portal/app/lib/gitea.php"
 }
 

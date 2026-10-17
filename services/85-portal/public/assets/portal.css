@@ -1,0 +1,68 @@
+/* Competitor portal (StarTech's Days style) */
+:root{--navy:#1e3048;--red:#d43049;--yellow:#e6ae4f;--bg:#eef1f4;--card:#fff;--mut:#6a7686;--bd:#dfe4ea}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--navy);font:15px/1.4 Montserrat,system-ui,sans-serif;min-height:100vh}
+a{color:inherit}
+header{position:relative;overflow:hidden}
+.title{max-width:1100px;margin:0 auto;padding:48px 260px 0 16px}
+.title h1{margin:0;font-weight:900;font-size:clamp(40px,7vw,72px);line-height:.95;letter-spacing:.01em;text-transform:uppercase}
+.title p{margin:14px 0 0;color:var(--yellow);font-weight:500;font-size:clamp(15px,1.8vw,20px)}
+.logo{position:absolute;top:0;right:0;padding:44px 48px 40px 106px;isolation:isolate}
+.logo::before{content:'';position:absolute;inset:0 -80px 0 0;background:var(--navy);transform:skewX(22deg);transform-origin:top;border-radius:0 0 0 36px;z-index:-1}
+.logo img{display:block;width:150px;height:auto}
+main{max-width:1100px;margin:0 auto;padding:12px 16px 56px}
+.band{display:inline-flex;align-items:stretch;margin:40px 0 16px}
+.band .n{position:relative;z-index:1;background:var(--yellow);color:var(--navy);font-weight:900;font-size:20px;padding:6px 26px 6px 18px;display:flex;align-items:center;border-radius:10px 0 0 10px;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.band .l{background:var(--navy);color:#fff;font-weight:800;font-size:18px;padding:8px 36px 8px 26px;margin-left:-14px;clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px}
+.card h2{margin:0 0 12px;font-size:17px;font-weight:800}
+.card .head{background:var(--red);color:#fff;margin:-18px -18px 14px;padding:12px 18px;border-radius:15px 15px 0 0;font-weight:800}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center}
+dt{color:var(--mut);font-size:13px;font-weight:700}
+dd{margin:0;min-width:0}
+.cp{display:flex;align-items:center;gap:4px}
+.icon-btn{position:relative;display:inline-flex;flex:none;background:none;color:var(--mut);padding:5px;border-radius:8px;border:0;cursor:pointer}
+button.icon-btn{background:none;padding:5px;border-radius:8px}
+.icon-btn:hover,.icon-btn:focus-visible,button.icon-btn:hover{background:#e8ecf1;color:var(--navy)}
+.icon-btn svg{width:17px;height:17px}
+.icon-btn.copied{color:#0a7d0a}
+/* One tooltip for the page, fixed to the viewport: never clipped nor scrolled by a container */
+.tooltip{position:fixed;z-index:1000;background:var(--navy);color:#fff;font-size:12px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;pointer-events:none}
+code,.secret{font:13px ui-monospace,monospace;background:#f2f4f7;border-radius:6px;padding:3px 7px;overflow-wrap:anywhere}
+button{font:inherit;font-size:12px;font-weight:700;border:0;border-radius:999px;padding:5px 12px;cursor:pointer;background:var(--navy);color:#fff}
+button:hover{background:var(--yellow);color:var(--navy)}
+.links{display:flex;gap:10px;flex-wrap:wrap}
+.links a{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);color:var(--navy);font-weight:800;border-radius:14px;padding:10px 18px 10px 12px;text-decoration:none;transition:border-color .15s,transform .15s}
+.links a:hover{border-color:var(--yellow);transform:translateY(-2px)}
+.links img{width:32px;height:32px;object-fit:contain}
+.status{font-weight:800;font-size:13px;white-space:nowrap}
+.status.ok{color:#0a7d0a}
+.status.missing{color:#a3261f}
+.status.unknown{color:var(--mut)}
+form.login{display:grid;gap:12px;max-width:360px}
+label{font-size:13px;font-weight:700;color:var(--mut);display:grid;gap:4px}
+input{font:inherit;font-weight:600;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;color:var(--navy)}
+input:focus{outline:2px solid var(--yellow);border-color:var(--yellow)}
+form.login button{font-size:15px;padding:10px 16px;justify-self:start}
+.error{background:#fdecee;color:#8a1c2c;border-radius:10px;padding:10px 12px;font-weight:700}
+.who{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:28px}
+.who strong{font-size:18px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--mut);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px 8px 0;border-bottom:1px solid var(--bd)}
+td{padding:8px 8px 8px 0;border-bottom:1px solid var(--bd);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td strong,td.db code{white-space:nowrap}
+/* Module whose repository is not created yet: no site, nothing to clone */
+tr.disabled td:not(.state):not(.db){opacity:.4}
+tr.disabled .site{cursor:not-allowed}
+.icon-btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.icon-btn[aria-disabled="true"]:hover{background:none;color:var(--mut)}
+.scroll{overflow-x:auto}
+.mut{color:var(--mut);font-size:13px;font-weight:500}
+footer{max-width:1100px;margin:0 auto;padding:0 16px 32px;color:var(--mut);font-size:13px;font-weight:700}
+@media (max-width:700px){
+  .logo{padding:22px 20px 20px 28px}
+  .logo img{width:84px}
+  .title{padding:28px 140px 0 16px}
+}

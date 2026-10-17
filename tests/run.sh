@@ -32,6 +32,13 @@ else
     ko "shellcheck found problems"
 fi
 
+step "PHP syntax (portal, APIs template)"
+if docker run --rm -v "$REPO_DIR:/code:ro" -w /code php:8.3.26-apache sh -c     'find services config/apis/template -name "*.php" -print0 | xargs -0 -n1 php -l > /dev/null'; then
+    ok "no syntax error"
+else
+    ko "PHP syntax errors"
+fi
+
 step "bats"
 docker build -q -t "$TESTS_IMAGE" "$REPO_DIR/tests" > /dev/null
 if docker run --rm -v "$REPO_DIR:/code:ro" -w /code "$TESTS_IMAGE" "${@:-tests}"; then
