@@ -66,3 +66,28 @@ footer{max-width:1100px;margin:0 auto;padding:0 16px 32px;color:var(--mut);font-
   .logo img{width:84px}
   .title{padding:28px 140px 0 16px}
 }
+/* Repository buttons of the modules section, and their popups */
+button.small{padding:3px 10px}
+.icon-btn.delete:hover,.icon-btn.delete:focus-visible{background:#fdecee;color:var(--red)}
+.notice{border-radius:10px;padding:10px 12px;font-weight:700;margin:16px 0 0}
+.notice.ok{background:#e6f4e6;color:#0a5c0a}
+.notice.error{background:#fdecee;color:#8a1c2c}
+dialog.modal{border:0;border-radius:16px;padding:18px;width:min(460px,calc(100% - 32px));color:var(--navy);background:var(--card)}
+dialog.modal::backdrop{background:rgba(30,48,72,.55)}
+dialog.modal form{display:grid;gap:14px}
+dialog.modal .head{background:var(--navy);color:#fff;margin:-18px -18px 0;padding:12px 18px;border-radius:16px 16px 0 0;font-weight:800}
+dialog.modal .head.danger{background:var(--red)}
+dialog.modal p{margin:0}
+.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.choice{display:block;cursor:pointer}
+.choice input{position:absolute;opacity:0}
+.choice span{display:block;text-align:center;border:2px solid var(--bd);border-radius:10px;padding:10px;color:var(--navy);font-size:14px;font-weight:800}
+.choice:hover span{border-color:var(--yellow)}
+.choice input:checked+span{border-color:var(--navy);background:var(--navy);color:#fff}
+.choice input:focus-visible+span{outline:2px solid var(--yellow)}
+.actions{display:flex;justify-content:flex-end;gap:8px}
+.actions button{font-size:14px;padding:8px 16px}
+button.secondary{background:#e8ecf1;color:var(--navy)}
+button.danger{background:var(--red)}
+button.danger:hover{background:#a3261f;color:#fff}
+button.danger:disabled,button.danger:disabled:hover{opacity:.45;cursor:not-allowed;background:var(--red);color:#fff}

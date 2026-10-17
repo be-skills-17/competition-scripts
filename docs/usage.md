@@ -23,6 +23,9 @@ credentials, website URLs, database names and Git repository URLs, ready to copy
 
 ### Creating a Repository
 
+The simplest way: in the portal (`https://<domain>/`), click **Créer** next to the module and pick a framework. The
+repository is created with the module's name. The steps below do the same in Gitea.
+
 1. **Access Gitea:**
    Open your Git server (e.g., `https://git.local.skill17.com`) and log in using your credentials.
 

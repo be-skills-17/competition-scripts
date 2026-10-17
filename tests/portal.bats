@@ -35,6 +35,17 @@ portal() {
     [ "$(portal .competitors.comp02.name)" = "comp02" ]
 }
 
+@test "the templates offered are the allowed frameworks, all of them without a list" {
+    write_portal_config
+    [ "$(portal '.frameworks | join(" ")')" = "laravel react" ]
+    for list in '[]' 'null'; do
+        jq --argjson list "$list" '.frameworks.allowed_frameworks = $list' "$CONFIG_DIR/main.json" > "$BATS_TEST_TMPDIR/main.json"
+        mv "$BATS_TEST_TMPDIR/main.json" "$CONFIG_DIR/main.json"
+        write_portal_config
+        [ "$(portal .frameworks)" = "null" ]
+    done
+}
+
 @test "the admin credentials are not in portal.json" {
     write_portal_config
     run grep -c 'admin password' "$DYNAMIC_DIR/portal/portal.json"

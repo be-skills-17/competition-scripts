@@ -34,3 +34,16 @@ function redirect(string $path): never
     header('Location: ' . $path, true, 303);
     exit;
 }
+
+// Message shown once, on the page displayed after the redirect: ['ok' | 'error', text]
+function flash(array $message): void
+{
+    $_SESSION['flash'] = $message;
+}
+
+function take_flash(): ?array
+{
+    $message = $_SESSION['flash'] ?? null;
+    unset($_SESSION['flash']);
+    return $message;
+}

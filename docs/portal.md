@@ -7,7 +7,8 @@ The main domain (`https://<domain>/`) serves a portal for competitors:
   port and user, `.npmrc` line, and for each module whether the Git repository is created yet, the website URL,
   database name and repository URL with the credentials (`https://<user>:<password>@git.<domain>/...`, ready for
   `git clone`; the password is hidden on screen, the copied URL is complete), plus the URLs of the provided APIs. A competitor only ever sees their own
-  information.
+  information;
+- **the creation and deletion of their modules' repositories** (see below).
 
 ## How it works
 
@@ -25,6 +26,20 @@ The repository status is asked to Gitea (internal URL `GITEA_API_URL`) with the 
 credentials: it lists the repositories they own, private ones included, without any admin token. If Gitea does
 not answer, the status shows "Gitea injoignable".
 
+## Creating and deleting a module's repository
+
+A module whose repository is missing has a **Créer** button: a popup lists the framework templates (the
+`frameworks` organization in Gitea, limited to `allowed_frameworks` when the list is set), and creates the private
+repository `<username>/<module>` from the chosen one (Gitea's "Use this template", with its content). The
+repository always gets the module's name.
+
+A created repository has a **Supprimer** button: the popup asks to type `Valider` (checked by the browser and
+again by the portal), then deletes the repository in Gitea. This cannot be undone.
+
+Both are done with the competitor's own credentials, only for the modules of `config/main.json`. As with "Use this
+template" in Gitea, creating a repository does not run its workflow: the website keeps its current image until
+the competitor's first push.
+
 Login: the password is compared with `hash_equals`, a failed attempt waits 0.8 s, the session id is renewed after
 login, forms carry a CSRF token, and the session cookie is `HttpOnly`, `SameSite=Lax` and `Secure` over HTTPS.
 
@@ -39,17 +54,19 @@ Plain PHP, no framework and no build. Changes are served at once (both folders a
 services/85-portal/
   app/                       PHP code, outside the document root (never reachable by URL)
     bootstrap.php            loads lib/, starts the session, reads portal.json
-    lib/session.php          session cookie, CSRF token, redirect after POST
+    lib/session.php          session cookie, CSRF token, redirect after POST, message shown once (flash)
     lib/auth.php             login / logout / logged-in competitor
-    lib/gitea.php            repositories owned by the competitor (Gitea API, their own credentials)
+    lib/gitea.php            Gitea API with the competitor's own credentials: their repositories, templates,
+                             creation from a template, deletion
     lib/competitor.php       what a logged-in competitor sees (repository state, clone URLs...): templates
-                             only display values computed here
-    lib/view.php             escaping, render(), icons, copy buttons, section bands
+                             only display values computed here; module_action() creates / deletes repositories
+    lib/view.php             escaping, render(), versioned asset URLs, icons, copy buttons, section bands
     templates/               HTML only: layout, login, home, sections/{access,modules,apis}
   public/                    document root
-    index.php                entry point: handles the login/logout POST, renders the layout
+    index.php                entry point: handles the POSTs (login, logout, create / delete a repository),
+                             renders the layout
     assets/portal.css        styles
-    assets/portal.js         tooltip and copy / reveal buttons
+    assets/portal.js         tooltip, copy / reveal buttons, repository popups
     img/, logo.svg           service icons and logo (not in img/icons: Apache reserves /icons/)
     dashboard/index.php      same page at /dashboard/ (see above)
 ```

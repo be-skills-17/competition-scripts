@@ -51,3 +51,35 @@ document.addEventListener('click', async (event) => {
     getSelection().addRange(range);
   }
 });
+
+// Popups of the modules section: [data-open] opens the dialog for its module, [data-close] closes it
+document.addEventListener('click', (event) => {
+  const opener = event.target.closest('[data-open]');
+  if (opener) {
+    const dialog = document.getElementById(opener.dataset.open);
+    const form = dialog.querySelector('form');
+    form.reset();
+    form.elements.module.value = opener.dataset.module;
+    dialog.querySelectorAll('[data-module]').forEach((element) => { element.textContent = opener.dataset.module; });
+    form.querySelector('input[data-confirm]')?.dispatchEvent(new Event('input', { bubbles: true }));
+    hideTip();
+    dialog.showModal();
+    return;
+  }
+  if (event.target.closest('[data-close]')) {
+    event.target.closest('dialog').close();
+  } else if (event.target.tagName === 'DIALOG') {
+    // The dialog's own padding is the dialog too: close only on a click outside it (the backdrop)
+    const r = event.target.getBoundingClientRect();
+    const inside = event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+    if (!inside) event.target.close();
+  }
+});
+
+// Deletion: the button stays disabled until the confirmation word is typed (checked again by the server)
+document.addEventListener('input', (event) => {
+  const input = event.target.closest('input[data-confirm]');
+  if (input) {
+    input.form.querySelector('button.danger').disabled = input.value !== input.dataset.confirm;
+  }
+});

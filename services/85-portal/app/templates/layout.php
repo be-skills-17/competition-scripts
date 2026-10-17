@@ -1,4 +1,4 @@
-<?php /** @var array $portal @var ?array $me @var ?string $error */ ?>
+<?php /** @var array $portal @var ?array $me @var ?string $error @var ?array $flash */ ?>
 <!doctype html>
 <html lang="fr">
 <head>
@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/portal.css">
+<link rel="stylesheet" href="<?= e(asset('/assets/portal.css')) ?>">
 </head>
 <body>
 <header>
@@ -26,10 +26,10 @@
     <a href="<?= e($portal['links']['phpmyadmin']) ?>"><img src="/img/phpmyadmin.svg" alt="">phpMyAdmin</a>
   </div>
 
-  <?php $me === null ? render('login', ['error' => $error]) : render('home', ['portal' => $portal, 'me' => $me]) ?>
+  <?php $me === null ? render('login', ['error' => $error]) : render('home', ['portal' => $portal, 'me' => $me, 'flash' => $flash]) ?>
 </main>
 
 <footer><?= e($portal['domain']) ?></footer>
-<script src="/assets/portal.js"></script>
+<script src="<?= e(asset('/assets/portal.js')) ?>"></script>
 </body>
 </html>

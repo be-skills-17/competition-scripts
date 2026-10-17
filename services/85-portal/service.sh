@@ -18,6 +18,8 @@ write_portal_config() {
             domain: $d,
             links: {gitea: url("git"), phpmyadmin: url("pma"), npm: url("npm")},
             database: {host: $d, port: 3306},
+            # Templates offered when creating a module (null: all of them, as import-frameworks does)
+            frameworks: (.frameworks.allowed_frameworks // [] | if length == 0 then null else . end),
             competitors: (.competitors | map({
                 key: .username,
                 value: (. as $c | {
