@@ -14,3 +14,21 @@
 - To reset everything: `sudo ./competition.sh clean`
 - To stop without removing data: `sudo ./competition.sh stop`
 - To restart: `sudo ./competition.sh start`
+
+## Gitea uses a lot of CPU every few seconds
+
+WUD checks every competitor image in Gitea's registry every 10 seconds (`WUD_WATCHER_LOCAL_CRON` in
+`services/60-wud/compose.yaml`) and asks a registry token for each request. With the admin password, Gitea checks
+it with its slow password hash every time (about 60 ms of CPU each). WUD therefore logs in with a `read:package`
+token instead, created by its `pre_up` hook and kept in `dynamic/wud/registry.env` (readable by root only).
+
+On an installation made before this token existed, or if the token was deleted in Gitea:
+
+```bash
+sudo ./competition.sh recreate wud
+```
+
+If Gitea does not answer when the hook runs, WUD falls back to the admin password (with a warning): run the same
+command again once Gitea is up. A longer `WUD_WATCHER_LOCAL_CRON` reduces the load further, at the cost of a longer
+delay between a competitor's push and its deployment.
+

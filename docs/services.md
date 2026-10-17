@@ -9,7 +9,7 @@ services/
   30-runners/      compose.yaml
   40-mysql/        compose.yaml  service_hooks.sh  lib/   # pre_init (competitors.sql)
   50-verdaccio/    compose.yaml  service_hooks.sh  lib/   # pre_init (permissions, config), wait_ready, post_init (prefetch npm)
-  60-wud/          compose.yaml
+  60-wud/          compose.yaml  service_hooks.sh  lib/   # pre_up (Gitea registry token, dynamic/wud/registry.env)
   65-glances/      compose.yaml                           # server metrics API, used by the dashboard
   70-competitors/                service_hooks.sh  lib/   # compose_file (generated), pre_init (users, images), clean (images)
   75-apis/                       service_hooks.sh  lib/   # compose_file (generated), pre_init (SQLite copies), clean

@@ -32,16 +32,18 @@ create_organization() {
         }" > /dev/null
 }
 
-# Create a personal access token for the admin and print it. Gitea refuses two tokens with the same name.
+# create_pat [name] [scopes as a JSON array]: create a personal access token for the admin and print it.
+# Gitea refuses two tokens with the same name. Default scopes: the ones the scripts need (orgs, repositories...).
 create_pat() {
     local token_name=${1:-CreateOrganizationScript}
+    local scopes=${2:-'["read:admin","write:organization,write:repository,write:user"]'}
     local response new_token
 
     response=$(curl -s -k -X POST -H "Content-Type: application/json" \
         -u "$USERNAME:$PASSWORD" \
         -d '{
               "name": "'"$token_name"'",
-              "scopes": ["read:admin","write:organization,write:repository,write:user"]
+              "scopes": '"$scopes"'
             }' \
         "$GITEA_URL/api/v1/users/$USERNAME/tokens")
 
