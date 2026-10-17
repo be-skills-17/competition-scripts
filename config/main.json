@@ -3,7 +3,7 @@
   "enable_https": true,
   "username": "root",
   "password": "skill17",
-  "modules": ["module-a", "module-b"],
+  "modules": ["module-a", "module-b", "module-c"],
   "competitors": [
     {
       "username": "comp01",
@@ -16,5 +16,8 @@
       "subdomain": "asdf"
     }
   ],
-  "frameworks_repo": "https://github.com/be-skills-17/frameworks-templates.git"
+  "frameworks": {
+    "frameworks_repo": "https://github.com/be-skills-17/frameworks-templates.git",
+    "allowed_frameworks": ["laravel", "react", "vanilla", "php", "vuejs"]
+  }
 }

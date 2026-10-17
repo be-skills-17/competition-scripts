@@ -4,9 +4,15 @@
   CREATE DATABASE IF NOT EXISTS `comp01_module-b`;
   CREATE USER IF NOT EXISTS 'comp01'@'%' IDENTIFIED BY 'test123';
   GRANT ALL PRIVILEGES ON `comp01_module-b`.* TO 'comp01'@'%';
+  CREATE DATABASE IF NOT EXISTS `comp01_module-c`;
+  CREATE USER IF NOT EXISTS 'comp01'@'%' IDENTIFIED BY 'test123';
+  GRANT ALL PRIVILEGES ON `comp01_module-c`.* TO 'comp01'@'%';
   CREATE DATABASE IF NOT EXISTS `comp02_module-a`;
   CREATE USER IF NOT EXISTS 'comp02'@'%' IDENTIFIED BY 'test123';
   GRANT ALL PRIVILEGES ON `comp02_module-a`.* TO 'comp02'@'%';
   CREATE DATABASE IF NOT EXISTS `comp02_module-b`;
   CREATE USER IF NOT EXISTS 'comp02'@'%' IDENTIFIED BY 'test123';
   GRANT ALL PRIVILEGES ON `comp02_module-b`.* TO 'comp02'@'%';
+  CREATE DATABASE IF NOT EXISTS `comp02_module-c`;
+  CREATE USER IF NOT EXISTS 'comp02'@'%' IDENTIFIED BY 'test123';
+  GRANT ALL PRIVILEGES ON `comp02_module-c`.* TO 'comp02'@'%';

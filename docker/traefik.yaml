@@ -38,6 +38,9 @@ services:
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls=true"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+      - traefik.http.middlewares.cors-home.headers.accessControlAllowOriginList=null
+      - traefik.http.middlewares.cors-home.headers.accessControlAllowMethods=GET
+      - traefik.http.routers.traefik.middlewares=cors-home   # à ajouter à la liste existante s'il y en a 
 
 networks:
   gitea:

@@ -1,28 +1,20 @@
 services:
-  #  docker-login:
-  #    image: "docker:latest"
-  #    container_name: "docker-login"
-  #    volumes:
-  #      - "/var/run/docker.sock:/var/run/docker.sock"
-  #      - "${CONFIG_DIR}/watchtower:/root/.docker"
-  #    entrypoint: >
-  ##      sh -c "
-  #      echo 'Logging in to Docker registry...';
-  #      docker login git.${DOMAIN} -u ${USERNAME} -p ${PASSWORD};
-  #      echo 'Docker login complete.'
-  #      "
-  #    labels:
-  #      wud.watch: false
-
   whatsupdocker:
     image: getwud/wud
     container_name: wud
+    restart: unless-stopped
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
+
+      # Authentication (mandatory since the latest major version)
+      - WUD_AUTH_ADMIN_USER=${USERNAME}
+      - WUD_AUTH_ADMIN_PASSWORD=${PASSWORD}
+
+      # Private Gitea registry
       - WUD_REGISTRY_GITEA_PRIVATE_URL=${GITEA_URL}
       - WUD_REGISTRY_GITEA_PRIVATE_LOGIN=${USERNAME}
       - WUD_REGISTRY_GITEA_PRIVATE_PASSWORD=${PASSWORD}
-      
+
       - WUD_WATCHER_LOCAL_WATCHBYDEFAULT=false
       - WUD_WATCHER_LOCAL_JITTER=1
       - WUD_WATCHER_LOCAL_CRON=*/10 * * * * *
@@ -30,11 +22,11 @@ services:
 
       - WUD_TRIGGER_DOCKER_DEPLOY_PRUNE=true
 
-      - WUD_REGISTRY_HUB_PUBLIC_ENABLED=false # Docker Hub
-      - WUD_REGISTRY_ECR_PUBLIC_ENABLED=false # AWS ECR
-      - WUD_REGISTRY_GCR_PUBLIC_ENABLED=false # Google Container Registry
-      - WUD_REGISTRY_GHCR_PUBLIC_ENABLED=false # GitHub Container Registry
-      - WUD_REGISTRY_QUAY_PUBLIC_ENABLED=false # Quay.io
+      - WUD_REGISTRY_HUB_PUBLIC_ENABLED=false
+      - WUD_REGISTRY_ECR_PUBLIC_ENABLED=false
+      - WUD_REGISTRY_GCR_PUBLIC_ENABLED=false
+      - WUD_REGISTRY_GHCR_PUBLIC_ENABLED=false
+      - WUD_REGISTRY_QUAY_PUBLIC_ENABLED=false
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     cap_add:
@@ -43,9 +35,13 @@ services:
       - "git.${DOMAIN}:172.17.0.1"
     ports:
       - 9000:3000
+    networks:
+      - gitea
+      - default
     labels:
       traefik.enable: true
       traefik.http.routers.wud.rule: Host(`wud.${DOMAIN}`)
+      traefik.http.routers.wud.entrypoints: websecure
       traefik.http.services.wud.loadbalancer.server.port: 3000
       traefik.http.routers.wud.tls: ${ENABLE_HTTPS}
 

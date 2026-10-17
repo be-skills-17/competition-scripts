@@ -26,12 +26,16 @@ setup_docker_registry_credentials() {
     log_success "Docker registry credentials configured"
 }
 
-# Clone and process frameworks repository
+# Clone and process frameworks repository, importing only allowed frameworks
 import_all_frameworks() {
     log_section "Importing Frameworks"
 
     if [ -z "$TEMP_DIR" ] || [ "$TEMP_DIR" = "/" ]; then
         log_error "TEMP_DIR is empty, aborting"; exit 1
+    fi
+
+    if [ -z "$ALLOWED_FRAMEWORKS" ]; then
+        log_warning "No allowed_frameworks configured, importing all frameworks"
     fi
 
     log_info "Cloning frameworks repository..."
@@ -41,13 +45,28 @@ import_all_frameworks() {
     cd "$TEMP_DIR" || exit 1
     rm -rf "$TEMP_DIR/.git"
 
-    for dir in $(find . -maxdepth 1 -type d -not -path '*/.*' -not -path '.'); do
+    local imported=()
+    for dir in */; do
+        [ -d "$dir" ] || continue
         framework_name=$(basename "$dir")
+
+        # Skip frameworks not in the allow list (exact, case-sensitive match)
+        if [ -n "$ALLOWED_FRAMEWORKS" ] && [[ " $ALLOWED_FRAMEWORKS " != *" $framework_name "* ]]; then
+            log_info "Skipping $framework_name (not in allowed_frameworks)"
+            continue
+        fi
+
         framework_path=$(realpath "$dir")
         log_subsection "Framework: $framework_name"
         import_framework "$framework_path" "$framework_name"
+        imported+=("$framework_name")
     done
 
-    log_success "All frameworks imported"
+    # Warn about allowed frameworks that don't exist in the repository
+    for allowed in $ALLOWED_FRAMEWORKS; do
+        [[ " ${imported[*]} " == *" $allowed "* ]] || log_warning "Allowed framework '$allowed' not found in repository"
+    done
+
+    log_success "Imported ${#imported[@]} framework(s): ${imported[*]}"
     cd - > /dev/null
 }

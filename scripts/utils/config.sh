@@ -12,7 +12,8 @@ load_configuration() {
     export USERNAME=$(jq -r '.username' "$config_file")
     export PASSWORD=$(jq -r '.password' "$config_file")
     export MODULES=$(jq -r '.modules | join(" ")' "$config_file")
-    export FRAMEWORKS_REPO=$(jq -r '.frameworks_repo' "$config_file")
+    export FRAMEWORKS_REPO=$(jq -r '.frameworks.frameworks_repo' "$config_file")
+    export ALLOWED_FRAMEWORKS=$(jq -r '.frameworks.allowed_frameworks | join(" ")' "$config_file")
 }
 
 # Setup HTTP/HTTPS related variables
