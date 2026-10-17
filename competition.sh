@@ -22,6 +22,7 @@ competition.sh_usage() {
 
   printf "%s\n" "Commands:"
   printf "  %s   Install system dependencies (Docker, jq, git, curl, certbot...)\n" "setup            "
+  printf "  %s   Check config/main.json and list every problem, without changing anything\n" "check-config     "
   printf "  %s   Initialize the environment from config/main.json and start every service\n" "init             "
   printf "  %s   Start all services\n" "start            "
   printf "  %s   Stop all services, keeping their containers and data\n" "stop             "
@@ -59,6 +60,25 @@ competition.sh_setup_usage() {
   printf "%s\n" "Usage:"
   printf "  competition.sh setup\n"
   printf "  competition.sh setup --help | -h\n"
+  echo
+
+  if [[ -n "$long_usage" ]]; then
+
+    printf "%s\n" "Options:"
+
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
+    echo
+
+  fi
+}
+
+competition.sh_check_config_usage() {
+  printf "competition.sh check-config - Check config/main.json and list every problem, without changing anything\n\n"
+
+  printf "%s\n" "Usage:"
+  printf "  competition.sh check-config\n"
+  printf "  competition.sh check-config --help | -h\n"
   echo
 
   if [[ -n "$long_usage" ]]; then
@@ -548,6 +568,52 @@ initialize_configuration() {
     log_success "Configuration initialized"
 }
 
+# Print one line per problem in config/main.json (nothing when it is valid).
+# Usernames, subdomains and modules end up in DNS names, container names, image paths and database
+# names; passwords are inserted as-is in SQL and JSON, so quotes and backslashes would break them.
+validate_configuration() {
+    local config_file=$CONFIG_DIR/main.json
+
+    if [ ! -f "$config_file" ]; then
+        echo "$config_file not found"
+        return
+    fi
+    if ! jq empty "$config_file" 2> /dev/null; then
+        echo "not valid JSON: $(jq empty "$config_file" 2>&1 | head -n1)"
+        return
+    fi
+
+    jq -r '
+        def text: type == "string" and length > 0;
+        def name: text and test("^[a-z0-9][a-z0-9-]*$");
+        def password: text and (test("[\"'"'"'\\\\]") | not);
+        def check(cond; message): if cond then empty else message end;
+        def duplicates(f): [.[] | f] | group_by(.) | map(select(length > 1) | .[0]) | .[];
+
+        check(.domain | text; "domain: required (e.g. \"local.skill17.com\")"),
+        check(.enable_https | type == "boolean"; "enable_https: must be true or false"),
+        check(.username | name; "username: required, lowercase letters, digits and dashes only"),
+        check(.password | password; "password: required, without quotes or backslashes"),
+        check(.modules | type == "array" and length > 0 and all(.[]; name);
+            "modules: required, a non-empty list of names (lowercase letters, digits and dashes)"),
+        check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
+        check(.frameworks.allowed_frameworks | . == null or (type == "array" and all(.[]; text));
+            "frameworks.allowed_frameworks: must be a list of framework names"),
+
+        if (.competitors | type == "array" and length > 0) | not then
+            "competitors: required, a non-empty list"
+        else
+            (.competitors | to_entries[] | .key as $i | .value |
+                check(.username | name; "competitors[\($i)].username: required, lowercase letters, digits and dashes only"),
+                check(.password | password; "competitors[\($i)].password: required, without quotes or backslashes"),
+                check(.subdomain | name; "competitors[\($i)].subdomain: required, lowercase letters, digits and dashes only"),
+                check(.name | . == null or text; "competitors[\($i)].name: must be a non-empty string if set")),
+            (.competitors | duplicates(.username) | "competitors: username \"\(.)\" is used more than once"),
+            (.competitors | duplicates(.subdomain) | "competitors: subdomain \"\(.)\" is used more than once")
+        end
+    ' "$config_file"
+}
+
 # Save the values computed by init to .env. Paths are not saved: initialize.sh derives them from the
 # script location, so the project can be moved or restored elsewhere.
 export_environment_variables() {
@@ -617,6 +683,14 @@ filter_initialized() {
 
 filter_not_initialized() {
     [ ! -f "$LOCK_FILE" ] || echo "Competition is already initialized. To re-initialize, please run the 'clean' command first."
+}
+
+filter_valid_config() {
+    local errors
+    errors=$(validate_configuration)
+    if [ -n "$errors" ]; then
+        printf 'Invalid config/main.json:\n%s\n' "$(sed 's/^/  - /' <<< "$errors")"
+    fi
 }
 
 # Import a framework from a local path
@@ -1324,6 +1398,19 @@ competition.sh_setup_command() {
 
 }
 
+competition.sh_check_config_command() {
+
+  errors=$(validate_configuration)
+
+  if [ -n "$errors" ]; then
+      log_error "Invalid config/main.json:"
+      sed 's/^/  - /' <<< "$errors" >&2
+      exit 1
+  fi
+  log_success "config/main.json is valid"
+
+}
+
 competition.sh_init_command() {
 
   initialize_configuration
@@ -1549,6 +1636,13 @@ parse_requirements() {
       shift $#
       ;;
 
+    check-config)
+      action="check-config"
+      shift
+      competition.sh_check_config_parse_requirements "$@"
+      shift $#
+      ;;
+
     init)
       action="init"
       shift
@@ -1710,6 +1804,79 @@ competition.sh_setup_parse_requirements() {
 
 }
 
+competition.sh_check_config_parse_requirements() {
+  local key
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+      --help | -h)
+        long_usage=yes
+        competition.sh_check_config_usage
+        exit
+        ;;
+
+      *)
+        break
+        ;;
+
+    esac
+  done
+
+  missing_deps=
+
+  if ! command -v jq >/dev/null 2>&1; then
+    printf "missing dependency: jq\n" >&2
+    missing_deps=1
+  else
+    deps['jq']="$(command -v jq | head -n1)"
+  fi
+
+  if [[ -n $missing_deps ]]; then
+    exit 1
+  fi
+
+  action="check-config"
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+
+      --)
+        shift
+        while [[ $# -gt 0 ]]; do
+          key="$1"
+
+          printf "invalid argument: %s\n" "$key" >&2
+          exit 1
+
+        done
+        break
+        ;;
+
+      -?*)
+        printf "invalid option: %s\n" "$key" >&2
+        exit 1
+        ;;
+
+      *)
+
+        printf "invalid argument: %s\n" "$key" >&2
+        exit 1
+
+        ;;
+
+    esac
+  done
+
+  filter_error=$(filter_root)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+}
+
 competition.sh_init_parse_requirements() {
   local key
 
@@ -1803,6 +1970,12 @@ competition.sh_init_parse_requirements() {
   fi
 
   filter_error=$(filter_not_initialized)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+  filter_error=$(filter_valid_config)
   if [[ -n $filter_error ]]; then
     echo "$filter_error" >&2
     exit 1
@@ -2094,6 +2267,13 @@ competition.sh_import_frameworks_parse_requirements() {
     deps['docker']="$(command -v docker | head -n1)"
   fi
 
+  if ! command -v jq >/dev/null 2>&1; then
+    printf "missing dependency: jq\n" >&2
+    missing_deps=1
+  else
+    deps['jq']="$(command -v jq | head -n1)"
+  fi
+
   if ! command -v curl >/dev/null 2>&1; then
     printf "missing dependency: curl\n" >&2
     missing_deps=1
@@ -2152,6 +2332,12 @@ competition.sh_import_frameworks_parse_requirements() {
   fi
 
   filter_error=$(filter_initialized)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+  filter_error=$(filter_valid_config)
   if [[ -n $filter_error ]]; then
     echo "$filter_error" >&2
     exit 1
@@ -2464,6 +2650,7 @@ run() {
 
   case "$action" in
     "setup") competition.sh_setup_command ;;
+    "check-config") competition.sh_check_config_command ;;
     "init") competition.sh_init_command ;;
     "start") competition.sh_start_command ;;
     "stop") competition.sh_stop_command ;;

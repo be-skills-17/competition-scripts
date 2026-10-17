@@ -13,9 +13,14 @@ commands:
   help: Install system dependencies (Docker, jq, git, curl, certbot...)
   filters: [root]
 
+- name: check-config
+  help: Check config/main.json and list every problem, without changing anything
+  filters: [root]
+  dependencies: [jq]
+
 - name: init
   help: Initialize the environment from config/main.json and start every service
-  filters: [root, not_initialized]
+  filters: [root, not_initialized, valid_config]
   dependencies: [docker, jq, curl, git]
 
 - name: start
@@ -46,8 +51,8 @@ commands:
 
 - name: import-frameworks
   help: Re-import the frameworks templates into Gitea (after changing allowed_frameworks or the frameworks repository)
-  filters: [root, initialized]
-  dependencies: [docker, curl, git]
+  filters: [root, initialized, valid_config]
+  dependencies: [docker, jq, curl, git]
 
 - name: backup
   help: Back up data, config and .env into backups/ (services are stopped during the copy)

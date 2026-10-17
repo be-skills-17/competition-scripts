@@ -47,6 +47,9 @@ All commands use the main `./competition.sh` script with actions. It must always
 # Install all dependencies (requires sudo, run once)
 sudo ./competition.sh setup
 
+# Check config/main.json without changing anything
+sudo ./competition.sh check-config
+
 # Initialize the environment (generates configs, starts services)
 sudo ./competition.sh init
 
@@ -143,8 +146,11 @@ The environment is configured using a JSON file at `config/main.json`. Below is 
   "enable_https": true,
   "username": "admin",
   "password": "your_secure_password",
-  "modules": ["module_a", "module_b"],
-  "frameworks_repo": "https://github.com/your-org/frameworks.git",
+  "modules": ["module-a", "module-b"],
+  "frameworks": {
+    "frameworks_repo": "https://github.com/your-org/frameworks.git",
+    "allowed_frameworks": ["laravel", "react", "vuejs"]
+  },
   "competitors": [
     {
       "name": "Competitor 1",
@@ -176,12 +182,20 @@ The environment is configured using a JSON file at `config/main.json`. Below is 
 4. **modules**: List of module/project names for competitors.
    - Example: `["frontend", "backend", "devops"]`
 
-5. **frameworks_repo**: Git repository URL containing framework templates.
+5. **frameworks.frameworks_repo**: Git repository URL containing framework templates.
    - These templates are cloned and imported for competitors to use
+   - **frameworks.allowed_frameworks** (optional): only these frameworks are imported; all of them if omitted
 
 6. **competitors**: Array of competitor configurations.
-   - Each competitor needs: `name`, `username`, `password`, and `subdomain`
+   - Each competitor needs: `username`, `password`, and `subdomain`; `name` is optional (display only)
    - Databases are automatically created per competitor per module
+
+**Validation:** `init` and `import-frameworks` check `config/main.json` first and list every problem before
+doing anything. To check it on its own: `sudo ./competition.sh check-config`. Rules:
+- `username`, `subdomain` and module names: lowercase letters, digits and dashes only (they are used in
+  domain names, container names, image paths and database names), each username and subdomain used once;
+- passwords: no quotes or backslashes (they are inserted as-is in SQL and JSON);
+- `enable_https`: `true` or `false` (not a string).
 
 ### Manual Installation
 

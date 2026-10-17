@@ -57,3 +57,49 @@ initialize_configuration() {
     create_lock_file
     log_success "Configuration initialized"
 }
+
+# Print one line per problem in config/main.json (nothing when it is valid).
+# Usernames, subdomains and modules end up in DNS names, container names, image paths and database
+# names; passwords are inserted as-is in SQL and JSON, so quotes and backslashes would break them.
+validate_configuration() {
+    local config_file=$CONFIG_DIR/main.json
+
+    if [ ! -f "$config_file" ]; then
+        echo "$config_file not found"
+        return
+    fi
+    if ! jq empty "$config_file" 2> /dev/null; then
+        echo "not valid JSON: $(jq empty "$config_file" 2>&1 | head -n1)"
+        return
+    fi
+
+    jq -r '
+        def text: type == "string" and length > 0;
+        def name: text and test("^[a-z0-9][a-z0-9-]*$");
+        def password: text and (test("[\"'"'"'\\\\]") | not);
+        def check(cond; message): if cond then empty else message end;
+        def duplicates(f): [.[] | f] | group_by(.) | map(select(length > 1) | .[0]) | .[];
+
+        check(.domain | text; "domain: required (e.g. \"local.skill17.com\")"),
+        check(.enable_https | type == "boolean"; "enable_https: must be true or false"),
+        check(.username | name; "username: required, lowercase letters, digits and dashes only"),
+        check(.password | password; "password: required, without quotes or backslashes"),
+        check(.modules | type == "array" and length > 0 and all(.[]; name);
+            "modules: required, a non-empty list of names (lowercase letters, digits and dashes)"),
+        check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
+        check(.frameworks.allowed_frameworks | . == null or (type == "array" and all(.[]; text));
+            "frameworks.allowed_frameworks: must be a list of framework names"),
+
+        if (.competitors | type == "array" and length > 0) | not then
+            "competitors: required, a non-empty list"
+        else
+            (.competitors | to_entries[] | .key as $i | .value |
+                check(.username | name; "competitors[\($i)].username: required, lowercase letters, digits and dashes only"),
+                check(.password | password; "competitors[\($i)].password: required, without quotes or backslashes"),
+                check(.subdomain | name; "competitors[\($i)].subdomain: required, lowercase letters, digits and dashes only"),
+                check(.name | . == null or text; "competitors[\($i)].name: must be a non-empty string if set")),
+            (.competitors | duplicates(.username) | "competitors: username \"\(.)\" is used more than once"),
+            (.competitors | duplicates(.subdomain) | "competitors: subdomain \"\(.)\" is used more than once")
+        end
+    ' "$config_file"
+}
