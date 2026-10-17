@@ -61,3 +61,20 @@ config_json() {
     run grep -c 'traefik' "$SERVICES_DIR/80-dashboard/compose.yaml"
     [ "$output" = "0" ]
 }
+
+@test "Glances enables every plugin the dashboard reads (the others are disabled)" {
+    local enabled read
+    enabled=$(grep -o -- '--enable-plugin [a-z,]*' "$SERVICES_DIR/65-glances/compose.yaml" | cut -d' ' -f2)
+    grep -q -- '--disable-plugin all' "$SERVICES_DIR/65-glances/compose.yaml"
+    # const GLANCES_PLUGINS = ['cpu', 'mem', ...];
+    read=$(grep -o "const GLANCES_PLUGINS = \[[^]]*\]" "$SERVICES_DIR/80-dashboard/html/index.html" \
+        | grep -o "'[a-z]*'" | tr -d "'" | paste -sd, -)
+    [ -n "$read" ]
+    [ "$read" = "$enabled" ] || { echo "dashboard reads $read, Glances enables $enabled"; return 1; }
+}
+
+@test "the dashboard asks Glances once per refresh (/all), not once per plugin" {
+    grep -q "getJSON('/all')" "$SERVICES_DIR/80-dashboard/html/index.html"
+    run grep -c "map(getJSON)" "$SERVICES_DIR/80-dashboard/html/index.html"
+    [ "$output" = "0" ]
+}

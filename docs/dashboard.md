@@ -31,6 +31,12 @@ Two services:
 Glances runs in a container: network traffic is not shown (it would only see the container's own interfaces),
 and the disk is the one holding Docker's files.
 
+Glances only runs the plugins the page reads (`--enable-plugin cpu,mem,load,fs,uptime,containers` in
+`services/65-glances/compose.yaml`): with all of them, the process list of the whole host and the other plugins
+took more than one CPU core. The page asks them all in one request (`/api/4/all`): parallel requests made Glances
+update its stats once per request. To show another metric, add its plugin to both `GLANCES_PLUGINS` in
+`html/index.html` and `--enable-plugin` (a test checks the two lists), then `sudo ./competition.sh recreate glances`.
+
 ## Editing the page
 
 The page is `services/80-dashboard/html/index.html` (static HTML, no build). Changes are served at once (the

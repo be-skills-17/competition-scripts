@@ -270,10 +270,13 @@ const getJSON = (p) => fetch(GLANCES_API + p, { signal: AbortSignal.timeout(2500
   return r.json();
 });
 
+// Plugins lus : les mêmes que --enable-plugin dans services/65-glances/compose.yaml (les autres sont désactivés)
+const GLANCES_PLUGINS = ['cpu', 'mem', 'load', 'fs', 'uptime', 'containers'];
+
 async function loadMetrics() {
-  const [cpu, mem, load, fs, uptime, containers] = await Promise.all(
-    ['/cpu', '/mem', '/load', '/fs', '/uptime', '/containers'].map(getJSON),
-  );
+  // Une seule requête (/all) : des requêtes parallèles font recalculer les stats à Glances pour chacune
+  const all = await getJSON('/all');
+  const [cpu, mem, load, fs, uptime, containers] = GLANCES_PLUGINS.map((plugin) => all[plugin]);
   // Glances tourne dans un conteneur : le disque de l'hôte apparaît via les fichiers montés, on garde le plus grand
   const disk = fs.reduce((a, b) => (b.size > (a?.size ?? 0) ? b : a), null);
   const running = containers.filter((c) => c.status === 'running');

@@ -7,7 +7,9 @@ services:
     restart: unless-stopped
     pid: host                       # sees the host's processes, not only the container's
     environment:
-      - GLANCES_OPT=-w --disable-webui
+      # Only the plugins the dashboard reads (loadMetrics in services/80-dashboard/html/index.html): with all of
+      # them (process list of the whole host, sensors, network...) Glances used more than one CPU core
+      - GLANCES_OPT=-w --disable-webui --disable-plugin all --enable-plugin cpu,mem,load,fs,uptime,containers
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro   # per-container stats
     networks:
