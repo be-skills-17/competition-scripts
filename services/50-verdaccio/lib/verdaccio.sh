@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Verdaccio: private npm registry.
+# Verdaccio service helpers: npm proxy on/off and npm cache (loaded with service_hooks.sh).
 # config/verdaccio/config.yaml is generated from config.template.yaml, in one of two modes:
 #   on   packages are fetched from npmjs and cached in data/verdaccio (the template as is)
 #   off  the "uplinks" and "middlewares" sections and every "proxy:" line are removed: only packages already
@@ -148,18 +148,6 @@ fetch_framework_manifests() {
     done
 }
 
-# Verdaccio runs as uid 10001 and must be able to write its storage
-service_verdaccio_pre_init() {
-    log_info "Configuring Verdaccio permissions..."
-    mkdir -p "$DATA_DIR/verdaccio"
-    chmod 777 -R "$DATA_DIR/verdaccio"
-    write_verdaccio_config on
-}
-
-service_verdaccio_wait_ready() {
-    wait_for_verdaccio
-}
-
 # prefetch_npm_packages [--keep-online]
 # Cache the npm dependencies of every framework template for every platform, check that every installed
 # package is in the cache, then cut npmjs off. On any failure the npm proxy is left on: a partial cache with
@@ -211,11 +199,4 @@ prefetch_npm_packages() {
     write_verdaccio_config off
     restart_verdaccio
     log_success "npmjs is cut off: only the templates' dependencies can be installed"
-}
-
-# npm is cut off by default: the packages of config/main.json are cached, then npmjs is cut off.
-# A failure does not stop init (the proxy stays on and the error says what to do).
-service_verdaccio_post_init() {
-    log_subsection "npm packages"
-    prefetch_npm_packages || true
 }

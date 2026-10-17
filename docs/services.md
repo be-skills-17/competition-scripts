@@ -5,17 +5,17 @@ Each service is a directory `services/<NN>-<name>/`:
 ```
 services/
   10-traefik/      compose.yaml
-  20-gitea/        compose.yaml  service.sh   # wait_ready, post_init (admin, tokens, orgs, frameworks)
+  20-gitea/        compose.yaml  service_hooks.sh  lib/   # wait_ready, post_init (admin, tokens, orgs, frameworks)
   30-runners/      compose.yaml
-  40-mysql/        compose.yaml  service.sh   # pre_init (competitors.sql)
-  50-verdaccio/    compose.yaml  service.sh   # pre_init (permissions, config), wait_ready, post_init (prefetch npm)
+  40-mysql/        compose.yaml  service_hooks.sh  lib/   # pre_init (competitors.sql)
+  50-verdaccio/    compose.yaml  service_hooks.sh  lib/   # pre_init (permissions, config), wait_ready, post_init (prefetch npm)
   60-wud/          compose.yaml
-  65-glances/      compose.yaml                 # server metrics API, used by the dashboard
-  70-competitors/                service.sh   # compose_file (generated), pre_init (users, images), clean (images)
-  75-apis/                       service.sh   # compose_file (generated), pre_init (SQLite copies), clean
+  65-glances/      compose.yaml                           # server metrics API, used by the dashboard
+  70-competitors/                service_hooks.sh  lib/   # compose_file (generated), pre_init (users, images), clean (images)
+  75-apis/                       service_hooks.sh  lib/   # compose_file (generated), pre_init (SQLite copies), clean
                                  start-apache.sh
-  80-dashboard/    compose.yaml  service.sh   # pre_up (config.js), nginx.conf, html/
-  85-portal/       compose.yaml  service.sh   # pre_up (portal.json), public/ (competitor portal, PHP)
+  80-dashboard/    compose.yaml  service_hooks.sh  lib/   # pre_up (config.js), nginx.conf, html/
+  85-portal/       compose.yaml  service_hooks.sh  lib/   # pre_up (portal.json), public/ (competitor portal, PHP)
 ```
 
 - `NN` is the start order; `stop`, `clean` go in reverse order. `<name>` is the name used by
@@ -24,10 +24,13 @@ services/
 - Files generated for the service (a generated compose file, configs mounted in containers...) go to
   `dynamic/<name>/` (`service_dynamic_dir <name>`, `${DYNAMIC_DIR}/<name>/` in a compose file). The core backs up
   and cleans `dynamic/` as a whole: a service never needs changes in `src/`.
-- `lib/*.sh` (optional) holds the service's helper functions, used by its hooks and by its own commands
-  (`deploy-apis` uses `services/75-apis/lib/apis.sh`). Loaded with `service.sh`.
-- `service.sh` is optional and defines hooks named `service_<name>_<hook>` (dashes in `<name>` become
-  underscores). Every hook is optional:
+- `service_hooks.sh` (optional) holds **only** the hooks, functions named `service_<name>_<hook>` (dashes in
+  `<name>` become underscores). Every hook is optional (see the table below).
+- `lib/*.sh` (optional) holds everything else: the service's helper functions and constants, used by its hooks
+  and by its own commands (`deploy-apis` uses `services/75-apis/lib/apis.sh`, `npm-proxy`
+  `services/50-verdaccio/lib/verdaccio.sh`). Loaded with `service_hooks.sh`, at runtime.
+
+Hooks:
 
 | Hook | Called by | When |
 |---|---|---|
@@ -43,5 +46,5 @@ services/
 `init` runs, for each service in order: `pre_init`, `pre_up`, `up -d`, `wait_ready`, `post_init`. A service can use what
 an earlier one prepared: the runners use the registration token created by gitea's `post_init`.
 
-**Adding a service:** create `services/<NN>-<name>/compose.yaml` (and `service.sh` if it needs hooks). Every
+**Adding a service:** create `services/<NN>-<name>/compose.yaml` (and `service_hooks.sh` if it needs hooks, `lib/<name>.sh` for its helpers). Every
 command picks it up, without regenerating `competition.sh`.

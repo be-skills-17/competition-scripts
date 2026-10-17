@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
-# Native PHP APIs from config/apis/ (src/lib/apis.sh, services/75-apis/service.sh)
+# Native PHP APIs from config/apis/ (services/75-apis/lib/apis.sh, services/75-apis/service_hooks.sh)
 
 load test_helper
 
 setup() {
     setup_project
     SERVICES_DIR="$REPO_DIR/services"
-    source "$SERVICES_DIR/75-apis/service.sh"
+    source "$SERVICES_DIR/75-apis/service_hooks.sh"
     mkdir -p "$DATA_DIR"
     DOMAIN=competition.test
     ENTRYPOINT=websecure

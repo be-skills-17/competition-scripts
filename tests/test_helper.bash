@@ -26,14 +26,14 @@ edit_config() {
     jq "$@" "$CONFIG_DIR/main.json" > "$tmp" && mv "$tmp" "$CONFIG_DIR/main.json"
 }
 
-# Create services/<dir>/compose.yaml (and service.sh from stdin when --hooks is given)
+# Create services/<dir>/compose.yaml (and service_hooks.sh from stdin when --hooks is given)
 add_service() {
     local dir=$1
     mkdir -p "$SERVICES_DIR/$dir"
     touch "$SERVICES_DIR/$dir/compose.yaml"
     if [ "$2" = "--hooks" ]; then
-        cat > "$SERVICES_DIR/$dir/service.sh"
+        cat > "$SERVICES_DIR/$dir/service_hooks.sh"
         # shellcheck disable=SC1091
-        source "$SERVICES_DIR/$dir/service.sh"
+        source "$SERVICES_DIR/$dir/service_hooks.sh"
     fi
 }

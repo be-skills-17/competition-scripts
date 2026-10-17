@@ -37,7 +37,7 @@ tests/run.sh tests/config.bats    # a single test file
 
 `tests/run.sh` only needs Docker. It checks that:
 1. `competition.sh` is up to date with `src/` (regenerated in a temporary directory and compared);
-2. `competition.sh`, the `service.sh` files and `tests/run.sh` pass [shellcheck](https://www.shellcheck.net);
+2. `competition.sh`, the `service_hooks.sh` and `lib/*.sh` files and `tests/run.sh` pass [shellcheck](https://www.shellcheck.net);
 3. the [bats](https://bats-core.readthedocs.io) tests in `tests/*.bats` pass. They cover the logic that needs
    neither Docker nor Gitea: config validation, service discovery and hooks, backups, `.env` loading, generated
    files (compose, SQL), filters and the spinner. Each test runs in a temporary project directory built from

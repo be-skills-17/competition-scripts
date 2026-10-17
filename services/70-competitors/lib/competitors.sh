@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Competitors service helpers (loaded with service.sh)
+# Competitors service helpers (loaded with service_hooks.sh)
 
 # Initialize competitors compose file
 initialize_competitors_config() {

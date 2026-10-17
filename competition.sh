@@ -868,7 +868,7 @@ recreate_service() {
 # Services live in services/<NN>-<name>/:
 #   - NN is the start order (stop/down go in reverse order)
 #   - compose.yaml is the service's compose file
-#   - service.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
+#   - service_hooks.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
 #       compose_file  print the compose file path (default: the service's compose.yaml)
 #       pre_init      init only, before the first "docker compose up" (generate files, prepare data dirs)
 #       pre_up        before every "docker compose up" (init, restore, recreate): files the containers mount
@@ -2850,9 +2850,9 @@ initialize() {
   export VERBOSE=false
   export REDIRECT=/dev/null
 
-  # Services (see src/lib/services.sh), loaded at runtime: hooks in service.sh, helpers in lib/*.sh.
+  # Services (see src/lib/services.sh), loaded at runtime: hooks in service_hooks.sh, helpers in lib/*.sh.
   # Adding or changing a service needs no regeneration.
-  for service_file in "$SERVICES_DIR"/*/service.sh "$SERVICES_DIR"/*/lib/*.sh; do
+  for service_file in "$SERVICES_DIR"/*/service_hooks.sh "$SERVICES_DIR"/*/lib/*.sh; do
       # shellcheck disable=SC1090
       [ -f "$service_file" ] && source "$service_file"
   done

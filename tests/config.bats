@@ -40,7 +40,7 @@ setup() {
 
 @test "the frameworks section is checked by the gitea service (validate hook)" {
     SERVICES_DIR="$REPO_DIR/services"
-    source "$SERVICES_DIR/20-gitea/service.sh"
+    source "$SERVICES_DIR/20-gitea/service_hooks.sh"
     edit_config 'del(.frameworks.frameworks_repo) | .frameworks.allowed_frameworks = "laravel"'
     run validate_configuration
     [[ "$output" == *"frameworks.frameworks_repo: required"* ]]

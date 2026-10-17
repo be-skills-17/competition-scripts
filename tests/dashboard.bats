@@ -6,7 +6,7 @@ load test_helper
 setup() {
     setup_project
     SERVICES_DIR="$REPO_DIR/services"
-    source "$SERVICES_DIR/80-dashboard/service.sh"
+    source "$SERVICES_DIR/80-dashboard/service_hooks.sh"
 }
 
 # The JSON object assigned to window.DASHBOARD_CONFIG

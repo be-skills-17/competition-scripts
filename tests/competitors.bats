@@ -6,7 +6,7 @@ load test_helper
 setup() {
     setup_project
     SERVICES_DIR="$REPO_DIR/services"
-    source "$SERVICES_DIR/70-competitors/service.sh"
+    source "$SERVICES_DIR/70-competitors/service_hooks.sh"
     DOMAIN=competition.test
     ENTRYPOINT=websecure
     ENABLE_HTTPS=true
@@ -14,7 +14,7 @@ setup() {
 }
 
 @test "mysql pre_init creates one database and grant per competitor and module" {
-    source "$REPO_DIR/services/40-mysql/service.sh"
+    source "$REPO_DIR/services/40-mysql/service_hooks.sh"
     service_mysql_pre_init > /dev/null
     run cat "$CONFIG_DIR/mysql/competitors.sql"
     [ "$(grep -c 'CREATE DATABASE' <<< "$output")" -eq 4 ]
@@ -24,7 +24,7 @@ setup() {
 }
 
 @test "mysql pre_init replaces the previous competitors.sql" {
-    source "$REPO_DIR/services/40-mysql/service.sh"
+    source "$REPO_DIR/services/40-mysql/service_hooks.sh"
     echo "OLD CONTENT" > "$CONFIG_DIR/mysql/competitors.sql"
     service_mysql_pre_init > /dev/null
     run grep -c "OLD CONTENT" "$CONFIG_DIR/mysql/competitors.sql"

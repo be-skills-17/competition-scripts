@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Gitea service helpers: frameworks templates import (loaded with service.sh)
+# Gitea service helpers: frameworks templates import (loaded with service_hooks.sh)
 
 # Import a framework from a local path
 import_framework() {

@@ -1,7 +1,7 @@
 # Services live in services/<NN>-<name>/:
 #   - NN is the start order (stop/down go in reverse order)
 #   - compose.yaml is the service's compose file
-#   - service.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
+#   - service_hooks.sh (optional) defines hooks named service_<name>_<hook>, loaded by initialize.sh:
 #       compose_file  print the compose file path (default: the service's compose.yaml)
 #       pre_init      init only, before the first "docker compose up" (generate files, prepare data dirs)
 #       pre_up        before every "docker compose up" (init, restore, recreate): files the containers mount

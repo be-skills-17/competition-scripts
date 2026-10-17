@@ -1,11 +1,11 @@
 #!/usr/bin/env bats
-# Verdaccio config generation: npm proxy on/off (services/50-verdaccio/service.sh)
+# Verdaccio config generation: npm proxy on/off (services/50-verdaccio/lib/verdaccio.sh)
 
 load test_helper
 
 setup() {
     setup_project
-    source "$REPO_DIR/services/50-verdaccio/service.sh"
+    source "$REPO_DIR/services/50-verdaccio/service_hooks.sh"
     mkdir -p "$CONFIG_DIR/verdaccio"
     cp "$REPO_DIR/config/verdaccio/config.template.yaml" "$CONFIG_DIR/verdaccio/"
     CONFIG="$CONFIG_DIR/verdaccio/config.yaml"

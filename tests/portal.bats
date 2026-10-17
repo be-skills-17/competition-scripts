@@ -6,7 +6,7 @@ load test_helper
 setup() {
     setup_project
     SERVICES_DIR="$REPO_DIR/services"
-    source "$SERVICES_DIR/85-portal/service.sh"
+    source "$SERVICES_DIR/85-portal/service_hooks.sh"
     GITEA_PROTOCOL=https
 }
 

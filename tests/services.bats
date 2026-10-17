@@ -119,3 +119,13 @@ HOOKS
     echo "$output"
     [ "$status" -eq 1 ]
 }
+
+@test "service_hooks.sh files only define hooks, helpers live in lib/" {
+    local file name
+    for file in "$REPO_DIR"/services/*/service_hooks.sh; do
+        name=$(basename "$(dirname "$file")" | sed 's/^[0-9]*-//; s/-/_/g')
+        # At the top level: comments, blank lines, "}" and service_<name>_<hook>() only (no helper, no variable)
+        run grep -nvE "^(#.*|\}|service_${name}_[a-z_]+\(\) \{|[[:space:]].*)?$" "$file"
+        [ -z "$output" ] || { echo "$file: $output"; return 1; }
+    done
+}

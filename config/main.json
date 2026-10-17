@@ -3,7 +3,7 @@
   "enable_https": true,
   "username": "root",
   "password": "skill17",
-  "modules": ["module-a", "module-b", "module-c"],
+  "modules": ["module-a", "module-b", "module-c", "module-d", "module-e", "module-f"],
   "competitors": [
     {
       "username": "comp01",
@@ -14,6 +14,24 @@
       "username": "comp02",
       "password": "test123",
       "subdomain": "asdf"
+    }
+    ,
+    {
+      "username": "comp03",
+      "password": "test123",
+      "subdomain": "poiu"
+    }
+    ,
+    {
+      "username": "comp04",
+      "password": "test123",
+      "subdomain": "zxcv"
+    }
+    ,
+    {
+      "username": "comp05",
+      "password": "test123",
+      "subdomain": "lkjh"
     }
   ],
   "frameworks": {

@@ -50,7 +50,7 @@ install elsewhere without its binary and fail at run time. Binaries are cached f
 | `linux-x64-musl` | Linux, musl: `node:*-alpine` images (e.g. the vuejs template's Dockerfile) |
 | `win32-x64` | Windows |
 
-The list is `VERDACCIO_PLATFORMS` in `services/50-verdaccio/service.sh` (e.g. add `darwin-arm64`).
+The list is `VERDACCIO_PLATFORMS` in `services/50-verdaccio/lib/verdaccio.sh` (e.g. add `darwin-arm64`).
 
 ## How the proxy is turned off
 

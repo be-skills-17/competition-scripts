@@ -22,11 +22,11 @@ module, and organizer-provided PHP APIs. User docs: `README.md` (table of conten
 competition.sh            generated, do not edit
 bashly-settings.yml       source_dir src, env production
 src/bashly.yml            commands, args, flags, filters, dependencies, help texts
-src/initialize.sh         runs before arg parsing (even --help): BASE_DIR, load_env_file, loads services/*/service.sh
+src/initialize.sh         runs before arg parsing (even --help): BASE_DIR, load_env_file, loads services/*/service_hooks.sh + lib/*.sh
 src/before.sh             runs after parsing and filters: global --verbose (must be placed BEFORE the command)
 src/<cmd>_command.sh      one per command (dashes -> underscores: import_frameworks_command.sh)
 src/lib/*.sh              shared functions, bundled into competition.sh by bashly
-services/<NN>-<name>/     compose.yaml + optional service.sh (hooks) and lib/*.sh (helpers), loaded at RUNTIME
+services/<NN>-<name>/     compose.yaml + optional service_hooks.sh (hooks ONLY) and lib/*.sh (helpers), loaded at RUNTIME
 config/main.json          competition config (validated by check-config / filter_valid_config)
 config/apis/<dir>/        organizer PHP APIs, gitignored except config/apis/template/ (disabled)
 data/                     persistent data (bind mounts), root/container-owned
@@ -46,7 +46,7 @@ tests/                    run.sh, *.bats, test_helper.bash, fixtures/main.json, 
   GITEA_TOKEN, REGISTRATION_TOKEN...). Paths are never saved: `set_paths` derives them from the script location;
   `load_env_file` re-applies them after sourcing because old `.env`/backups still contain paths.
 - **Validation**: `validate_configuration` (`src/lib/config.sh`, jq) checks main.json, then calls every service's
-  `validate` hook (the APIs check their api.json in `services/75-apis/service.sh`). Names
+  `validate` hook (the APIs check their api.json in `services/75-apis/service_hooks.sh`). Names
   (usernames, subdomains, modules, API names) are `^[a-z0-9][a-z0-9-]*$` (DNS, image paths); passwords reject
   quotes, backslashes and control chars (inserted raw into SQL/JSON, read back via `@tsv`).
 - **APIs**: one `php:<v>-apache` container per enabled API and competitor (`<username>_<name>`), code mounted
@@ -92,7 +92,7 @@ generated files.
 - In `bashly.yml`, several entries share names (`backup` is a command AND restore's argument): anchor edits on
   unique context.
 - Verdaccio 6 queries every declared uplink even for packages without `proxy:`: offline mode must remove the
-  `uplinks:` section (see services/50-verdaccio/service.sh). `config/verdaccio/config.yaml` is generated from
+  `uplinks:` section (see services/50-verdaccio/lib/verdaccio.sh). `config/verdaccio/config.yaml` is generated from
   `config.template.yaml`.
 - npm silently skips optional dependencies it cannot fetch (platform binaries): an install that succeeds
   proves nothing, compare the installed package lists instead (prefetch-npm does).
