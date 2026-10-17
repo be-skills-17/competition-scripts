@@ -20,6 +20,8 @@ function competitor_view(array $portal, string $username): array
             'state' => $state,
             // Nothing to visit or clone before the repository exists (unknown state: don't block)
             'available' => $state !== 'missing',
+            // Repository page in Gitea: the clone URL without ".git"
+            'web' => preg_replace('#\.git$#', '', $module['repository']),
             'clone_shown' => $cloneShown,
             'clone_copied' => $cloneCopied,
         ];

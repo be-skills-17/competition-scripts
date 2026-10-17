@@ -26,6 +26,7 @@ const ICONS = [
     'eye' => '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
     'open' => '<path d="M14 4h6v6"/><path d="M10 14 20 4"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
     'trash' => '<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+    'plus' => '<path d="M12 5v14"/><path d="M5 12h14"/>',
     'logout' => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
 ];
 
@@ -74,9 +75,9 @@ function band($count, string $label): string
 function repository_state(string $state): string
 {
     [$class, $label] = [
-        'created' => ['ok', '✓ créé'],
-        'missing' => ['missing', '✗ pas encore créé'],
-        'unknown' => ['unknown', '? Gitea injoignable'],
+        'created' => ['ok', 'Créé'],
+        'missing' => ['missing', 'Pas encore créé'],
+        'unknown' => ['unknown', 'Gitea injoignable'],
     ][$state];
     return '<span class="status ' . $class . '">' . $label . '</span>';
 }

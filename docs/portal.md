@@ -37,7 +37,8 @@ Each template is shown with its logo, `public/img/frameworks/<template>.svg` (fr
 CC0, filled with the brand color). A template without a logo gets a generic `</>` icon: to add one, drop
 `<template>.svg` in that folder (served at once, no restart).
 
-A created repository has a **Supprimer** button: the popup asks to type `Valider` (checked by the browser and
+The buttons are in the last column of the modules table. A created repository has a link to its page in Gitea
+(Gitea icon) and a **Supprimer** button (bin icon): the popup asks to type `Valider` (checked by the browser and
 again by the portal), then deletes the repository in Gitea. This cannot be undone.
 
 Both are done with the competitor's own credentials, only for the modules of `config/main.json`. As with "Use this
