@@ -1,7 +1,3 @@
-#!/bin/bash
-
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
-
 # Create admin user in Gitea
 create_admin_user() {
     local username=$1
@@ -33,9 +29,30 @@ create_organization() {
         }" > /dev/null
 }
 
+# Create a personal access token for the admin and print it. Gitea refuses two tokens with the same name.
+create_pat() {
+    local token_name=${1:-CreateOrganizationScript}
+    local response new_token
+
+    response=$(curl -s -k -X POST -H "Content-Type: application/json" \
+        -u "$USERNAME:$PASSWORD" \
+        -d '{
+              "name": "'"$token_name"'",
+              "scopes": ["read:admin","write:organization,write:repository,write:user"]
+            }' \
+        "$GITEA_URL/api/v1/users/$USERNAME/tokens")
+
+    new_token=$(echo "$response" | grep -o '"sha1":"[^"]*"' | sed 's/"sha1":"//;s/"//g')
+    if [ -z "$new_token" ] || [ "$new_token" == "null" ]; then
+        echo "Failed to create token. Response: $response"
+        return 1
+    fi
+    echo "$new_token"
+}
+
 # Get or create PAT token
 get_personal_access_token() {
-    export GITEA_TOKEN=$($SCRIPTS_DIR/create_pat.sh "$GITEA_URL" "$USERNAME" "$PASSWORD")
+    export GITEA_TOKEN=$(create_pat)
 }
 
 # Returns 0 if $GITEA_TOKEN is accepted by Gitea
@@ -51,7 +68,7 @@ load_personal_access_token() {
     gitea_token_is_valid && return 0
 
     log_warning "No valid GITEA_TOKEN in $env_file, creating a new one"
-    export GITEA_TOKEN=$($SCRIPTS_DIR/create_pat.sh "$GITEA_URL" "$USERNAME" "$PASSWORD" "competition-scripts-$(date +%Y%m%d%H%M%S)")
+    export GITEA_TOKEN=$(create_pat "competition-scripts-$(date +%Y%m%d%H%M%S)")
     if ! gitea_token_is_valid; then
         log_error "Could not get a Gitea access token: $GITEA_TOKEN"
         return 1
@@ -104,7 +121,59 @@ add_competitor_to_team() {
     local team=$2
     local user=$3
     
-    $SCRIPTS_DIR/add_user_to_team.sh "$org" "$team" "$user"
+    local team_id response
+
+    team_id=$(curl -k -s -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/orgs/$org/teams/search?q=$team" \
+        | awk -F'"id":' '{print $2}' | awk -F',' '{print $1}' | head -n 1)
+    if [ -z "$team_id" ] || [ "$team_id" == "null" ]; then
+        log_error "Failed to retrieve team ID for team '$team' in organization '$org'."
+        return 1
+    fi
+
+    response=$(curl -k -s -o /dev/null -w "%{http_code}" -X PUT \
+        -H "Content-Type: application/json" \
+        -H "Authorization: token $GITEA_TOKEN" \
+        "$GITEA_URL/api/v1/teams/$team_id/members/$user")
+    if [ "$response" -ne 204 ]; then
+        log_error "Failed to add user '$user' to team '$team' in organization '$org'. HTTP status code: $response"
+        return 1
+    fi
+    log_info "User '$user' added to team '$team' in organization '$org'."
+}
+
+# Create a team in an organization
+create_team() {
+    local org=$1
+    local team=$2
+    local can_create_org_repo=$3
+    local response team_id
+
+    response=$(curl -k -s -X POST -H "Content-Type: application/json" \
+        -H "Authorization: token $GITEA_TOKEN" \
+        -d '{
+              "name": "'"$team"'",
+              "can_create_org_repo": '"$can_create_org_repo"',
+              "units_map": {
+                "repo.actions": "read",
+                "repo.packages": "none",
+                "repo.code": "write",
+                "repo.issues": "write",
+                "repo.ext_issues": "none",
+                "repo.wiki": "admin",
+                "repo.pulls": "owner",
+                "repo.releases": "none",
+                "repo.projects": "none",
+                "repo.ext_wiki": "none"
+              }
+            }' \
+        "$GITEA_URL/api/v1/orgs/$org/teams")
+
+    team_id=$(echo "$response" | awk -F'"id":' '{print $2}' | awk -F',' '{print $1}')
+    if [ -z "$team_id" ] || [ "$team_id" == "null" ]; then
+        log_error "Failed to create team. Response: $response"
+        return 1
+    fi
+    log_info "Created team '$team' (ID: $team_id)"
 }
 
 # Setup basic organizations and teams
@@ -114,5 +183,5 @@ setup_organizations_and_teams() {
     create_organization "images"
     create_organization "frameworks"
     
-    $SCRIPTS_DIR/create_team.sh "frameworks" "competitors" false
+    create_team "frameworks" "competitors" false
 }

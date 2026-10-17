@@ -1,26 +1,6 @@
-#!/bin/bash
-
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
-
 # Everything needed to bring an environment back, relative to $BASE_DIR.
 # Competitor images live in Gitea's container registry, so they are inside data/gitea.
 BACKUP_ITEMS=(data config dynamic/docker .env competition.lock)
-
-# Compose files in start order (traefik creates the "gitea" network used by the others)
-COMPOSE_START_ORDER=(
-    "$DOCKER_DIR/traefik.yaml"
-    "$DOCKER_DIR/gitea.yaml"
-    "$DOCKER_DIR/gitea-runner.yaml"
-    "$DOCKER_DIR/mysql.yaml"
-    "$DOCKER_DIR/verdaccio.yaml"
-    "$DOCKER_DIR/wud.yaml"
-    "$DYNAMIC_DOCKER_DIR/competitors.yaml"
-)
-
-# Returns 0 if at least one container of the project is running
-project_is_running() {
-    [ -n "$(docker ps -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")" ]
-}
 
 # Write the given items (relative to $BASE_DIR) into a root-only archive.
 # --numeric-owner: keep container uids (mysql 999, gitea 1000, verdaccio 10001) even if the host maps
@@ -57,4 +37,21 @@ create_backup_archive() {
         return 1
     fi
     log_success "Backup created ($(du -h "$LAST_BACKUP_FILE" | cut -f1)): $LAST_BACKUP_FILE"
+}
+
+list_backups() {
+    echo "Available backups in $BACKUP_DIR:"
+    ls -1t "$BACKUP_DIR"/backup-*.tar.gz 2>/dev/null | xargs -r -n1 basename | sed 's/^/  /'
+}
+
+# Print the archive path for a file path, a file name in $BACKUP_DIR, or "latest"
+resolve_backup() {
+    local name=$1
+    if [ "$name" = "latest" ]; then
+        ls -1t "$BACKUP_DIR"/backup-*.tar.gz 2>/dev/null | head -n1
+    elif [ -f "$name" ]; then
+        realpath "$name"
+    elif [ -f "$BACKUP_DIR/$(basename "$name")" ]; then
+        echo "$BACKUP_DIR/$(basename "$name")"
+    fi
 }

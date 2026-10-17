@@ -1,7 +1,3 @@
-#!/bin/bash
-
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
-
 # Start a Docker Compose service
 docker_compose() {
     local file="$1"

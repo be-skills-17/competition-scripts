@@ -1,10 +1,6 @@
-#!/bin/bash
-
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
-
 # Load and export configuration from main.json
 load_configuration() {
-    local config_file=$(realpath "config/main.json")
+    local config_file=$CONFIG_DIR/main.json
     log_debug "Loading configuration from $config_file"
     
     export DOMAIN=$(jq -r '.domain' "$config_file")
@@ -39,8 +35,7 @@ setup_service_vars() {
 # Setup directory variables
 setup_directory_vars() {
     mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
-    export TEMP_DIR=$(realpath "dynamic/frameworks")
-    export CONFIG_FILE=$(realpath "config/main.json")
+    export CONFIG_FILE=$CONFIG_DIR/main.json
 }
 
 # Initialize lock file

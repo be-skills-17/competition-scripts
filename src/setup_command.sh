@@ -1,16 +1,4 @@
-#!/bin/bash
-
-# Source logging for beautiful output
-# SCRIPTS_DIR is exported by competition.sh
-source "$SCRIPTS_DIR/logging.sh"
-
 log_section "Installing Dependencies"
-
-# Check if running with sudo privileges
-if [ "$EUID" -ne 0 ]; then 
-    log_error "This script must be run as root or with sudo"
-    exit 1
-fi
 
 # Detect OS
 if [ -f /etc/os-release ]; then
@@ -119,7 +107,7 @@ log_success "All dependencies installed successfully! 🎉"
 echo ""
 log_info "Next steps:"
 echo "  1. Review config/main.json and customize settings"
-echo "  2. Run: ./competition.sh init"
+echo "  2. Run: sudo ./competition.sh init"
 echo ""
 
 

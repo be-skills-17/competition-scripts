@@ -1,16 +1,3 @@
-#!/bin/bash
-
-# Source logging first
-source "$SCRIPTS_DIR/logging.sh"
-
-# Source all utility modules
-source "$SCRIPTS_DIR/config.sh"
-source "$SCRIPTS_DIR/docker-services.sh"
-source "$SCRIPTS_DIR/gitea-setup.sh"
-source "$SCRIPTS_DIR/frameworks.sh"
-source "$SCRIPTS_DIR/competitors.sh"
-source "$SCRIPTS_DIR/environment.sh"
-
 # Initialize configuration
 initialize_configuration
 
@@ -47,7 +34,7 @@ configure_verdaccio_permissions
 start_competitor_services
 
 # Export environment variables
-export_environment_variables ".env"
+export_environment_variables "$BASE_DIR/.env"
 
 echo ""
 log_success "All done! Competition environment is ready! 🎉"

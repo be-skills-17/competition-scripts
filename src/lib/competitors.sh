@@ -1,7 +1,3 @@
-#!/bin/bash
-
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
-
 # Initialize competitors configuration files
 initialize_competitors_config() {
     log_info "Initializing competitors configuration..."

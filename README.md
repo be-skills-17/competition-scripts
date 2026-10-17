@@ -122,11 +122,14 @@ What survives a recreate:
 | whatsupdocker | - | update history; it rescans within seconds |
 | competitor containers | - | anything written inside the container; the image currently deployed by WUD is kept |
 
-**Verbose mode** (shows debug information):
+**Verbose mode** (shows debug information). The flag goes before the command:
 ```bash
 sudo ./competition.sh -v init
 sudo ./competition.sh --verbose start
 ```
+
+**Help:** `./competition.sh --help` lists every command, `./competition.sh <command> --help` shows its arguments
+and examples (no `sudo` needed for help).
 
 **Note:** If you have previously run `sudo ./competition.sh init`, make sure to clean the environment first by running `sudo ./competition.sh clean` before initializing again. This ensures a fresh setup and avoids potential conflicts. Do NOT manually delete `competition.lock`, it's there as a safeguard and should only be cleared with `sudo ./competition.sh clean`
 
@@ -297,3 +300,33 @@ git --version
 - To reset everything: `sudo ./competition.sh clean`
 - To stop without removing data: `sudo ./competition.sh stop`
 - To restart: `sudo ./competition.sh start`
+
+## Development
+
+`competition.sh` is generated with [bashly](https://bashly.dev) from the sources in `src/`. **Do not edit
+`competition.sh` directly**, edit `src/` and regenerate it.
+
+```
+bashly-settings.yml        # bashly settings (source dir, production mode)
+src/
+  bashly.yml               # commands, arguments, flags, filters, dependencies and help texts
+  initialize.sh            # runs first: loads .env and defines paths
+  before.sh                # runs after argument parsing: --verbose
+  <command>_command.sh     # one file per command (init, start, recreate, backup...)
+  lib/                     # functions shared by the commands
+    services.sh            # the list of compose files, in start order (single source of truth)
+    filters.sh             # root / initialized checks used by the commands' filters
+    logging.sh, config.sh, gitea.sh, frameworks.sh, competitors.sh, backup.sh, clean.sh, recreate.sh...
+```
+
+Regenerate `competition.sh` after any change (only Docker is needed, no Ruby):
+
+```bash
+docker run --rm --user $(id -u):$(id -g) -v "$PWD:/app" dannyben/bashly:2.0.0 generate
+```
+
+Commit both `src/` and the generated `competition.sh`, so users never need bashly.
+
+- Adding a command: declare it in `src/bashly.yml`, run the generate command above; bashly creates
+  `src/<command>_command.sh` for you to fill.
+- Adding a service: add its compose file to `docker/` and to `compose_files` in `src/lib/services.sh`.

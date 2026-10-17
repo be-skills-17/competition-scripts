@@ -1,0 +1,74 @@
+name: competition.sh
+help: Set up and manage a web development competition environment (Gitea, Traefik, MySQL, Verdaccio, WUD)
+version: 2.0.0
+footer: Every command must be run as root (sudo).
+
+flags:
+- long: --verbose
+  short: -v
+  help: Show debug output and the output of every underlying command
+
+commands:
+- name: setup
+  help: Install system dependencies (Docker, jq, git, curl, certbot...)
+  filters: [root]
+
+- name: init
+  help: Initialize the environment from config/main.json and start every service
+  filters: [root, not_initialized]
+  dependencies: [docker, jq, curl, git]
+
+- name: start
+  help: Start all services
+  filters: [root, initialized]
+  dependencies: [docker]
+
+- name: stop
+  help: Stop all services, keeping their containers and data
+  filters: [root, initialized]
+  dependencies: [docker]
+
+- name: recreate
+  help: Recreate some services without touching the rest of the stack
+  filters: [root, initialized]
+  dependencies: [docker, jq]
+  args:
+  - name: service
+    repeatable: true
+    help: |-
+      Service name (e.g. gitea, verdaccio, comp01_module-a) or group name (traefik, gitea, runners, mysql, verdaccio, wud, competitors).
+      An exact service name wins over a group name. Run without arguments to list them.
+  examples:
+  - sudo ./competition.sh recreate
+  - sudo ./competition.sh recreate gitea
+  - sudo ./competition.sh recreate verdaccio wud
+  - sudo ./competition.sh recreate runners
+
+- name: import-frameworks
+  help: Re-import the frameworks templates into Gitea (after changing allowed_frameworks or the frameworks repository)
+  filters: [root, initialized]
+  dependencies: [docker, curl, git]
+
+- name: backup
+  help: Back up data, config and .env into backups/ (services are stopped during the copy)
+  filters: [root, initialized]
+  dependencies: [docker]
+
+- name: restore
+  help: Replace the current environment with a backup (the current one is backed up first)
+  filters: [root]
+  dependencies: [docker, jq]
+  args:
+  - name: backup
+    help: Backup file, file name in backups/, or "latest". Run without arguments to list backups.
+  examples:
+  - sudo ./competition.sh restore latest
+  - sudo ./competition.sh restore backup-20261016-191708-manual.tar.gz
+
+- name: clean
+  help: Remove every container, data, generated file and competitor image (a backup is made first)
+  filters: [root]
+  dependencies: [docker, jq]
+  flags:
+  - long: --no-backup
+    help: Do not back up before cleaning

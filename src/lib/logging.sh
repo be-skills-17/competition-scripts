@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -12,35 +10,35 @@ NC='\033[0m' # No Color
 
 # Log functions
 log_info() {
-    echo -e "${BLUE}ℹ${NC}  $@"
+    echo -e "${BLUE}ℹ${NC}  $*"
 }
 
 log_success() {
-    echo -e "${GREEN}✓${NC}  $@"
+    echo -e "${GREEN}✓${NC}  $*"
 }
 
 log_error() {
-    echo -e "${RED}✗${NC}  $@" >&2
+    echo -e "${RED}✗${NC}  $*" >&2
 }
 
 log_warning() {
-    echo -e "${YELLOW}⚠${NC}  $@"
+    echo -e "${YELLOW}⚠${NC}  $*"
 }
 
 log_section() {
     echo ""
     echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BOLD}${CYAN}▶  $@${NC}"
+    echo -e "${BOLD}${CYAN}▶  $*${NC}"
     echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
 log_subsection() {
-    echo -e "${BOLD}${MAGENTA}→  $@${NC}"
+    echo -e "${BOLD}${MAGENTA}→  $*${NC}"
 }
 
 log_debug() {
     if [ "$VERBOSE" = true ]; then
-        echo -e "${CYAN}🔍  $@${NC}"
+        echo -e "${CYAN}🔍  $*${NC}"
     fi
 }
 

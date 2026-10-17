@@ -1,18 +1,11 @@
-#!/bin/bash
-
-# Create a backup of the whole environment (data, config, generated compose file, .env).
-# Services are stopped during the copy so the MySQL files are consistent, then started again.
-
-source "$SCRIPTS_DIR/logging.sh"
-source "$SCRIPTS_DIR/backup.sh"
-
+# Services are stopped during the copy so the MySQL files are consistent, then started again
 log_section "Backing up Competition Environment"
 
 was_running=false
 if project_is_running; then
     was_running=true
     log_subsection "Stopping services for a consistent copy"
-    bash "$ACTIONS_DIR/stop.sh"
+    compose_each --reverse stop
 fi
 
 log_subsection "Archiving"
@@ -21,7 +14,7 @@ status=$?
 
 if [ "$was_running" = true ]; then
     log_subsection "Starting services again"
-    bash "$ACTIONS_DIR/start.sh"
+    compose_each start
 fi
 
 exit $status

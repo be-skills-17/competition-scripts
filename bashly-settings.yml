@@ -1,0 +1,6 @@
+# Bashly settings, see https://bashly.dev/usage/settings/
+# Regenerate competition.sh after any change in src/:
+#   docker run --rm --user $(id -u):$(id -g) -v "$PWD:/app" dannyben/bashly:2.0.0 generate
+source_dir: src
+target_dir: .
+env: production

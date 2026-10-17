@@ -1,51 +1,33 @@
-#!/bin/bash
-
-# Recreate one or more services individually, without touching the rest of the stack.
-# Usage: competition.sh recreate <service|group> [<service|group> ...]
-
-source "$SCRIPTS_DIR/logging.sh"
-
-# GITEA_URL is not stored in .env, rebuild it from the stored protocol/domain
-export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
-
-COMPOSE_FILES=(
-    "$DOCKER_DIR/traefik.yaml"
-    "$DOCKER_DIR/gitea.yaml"
-    "$DOCKER_DIR/gitea-runner.yaml"
-    "$DOCKER_DIR/mysql.yaml"
-    "$DOCKER_DIR/verdaccio.yaml"
-    "$DOCKER_DIR/wud.yaml"
-    "$DYNAMIC_DOCKER_DIR/competitors.yaml"
-)
+# Recreate services individually, without touching the rest of the stack
 
 # Maps "service name" -> "compose file"
-declare -A SERVICE_FILE
+declare -gA SERVICE_FILE
 # Maps "group name" (compose file basename) -> "compose file"
-declare -A GROUP_FILE
+declare -gA GROUP_FILE
 
 build_service_map() {
     local file group svc
-    for file in "${COMPOSE_FILES[@]}"; do
+    while read -r file; do
         [ -f "$file" ] || continue
         group=$(basename "$file" .yaml)
         GROUP_FILE[$group]=$file
-        for svc in $(docker compose -f "$file" config --services 2>/dev/null); do
+        for svc in $(docker compose -f "$file" config --services 2>/dev/null < /dev/null); do
             SERVICE_FILE[$svc]=$file
         done
-    done
+    done < <(compose_files)
     # Friendly aliases
     [ -n "${GROUP_FILE[gitea-runner]}" ] && GROUP_FILE[runners]=${GROUP_FILE[gitea-runner]}
 }
 
 print_available() {
     echo "Available services:"
-    local file svc
-    for file in "${COMPOSE_FILES[@]}"; do
+    local file
+    while read -r file; do
         [ -f "$file" ] || continue
         echo -n "  $(basename "$file" .yaml): "
-        docker compose -f "$file" config --services 2>/dev/null | tr '\n' ' '
+        docker compose -f "$file" config --services 2>/dev/null < /dev/null | tr '\n' ' '
         echo ""
-    done
+    done < <(compose_files)
     echo ""
     echo "A group name (e.g. 'mysql', 'runners', 'competitors') recreates every service of that file."
     echo "An exact service name always takes precedence over a group name (e.g. 'gitea' only recreates the gitea container)."
@@ -92,40 +74,3 @@ recreate_service() {
     [ -n "$override" ] && rm -f "$override"
     return $status
 }
-
-if [ "$#" -lt 1 ]; then
-    echo "Usage: competition.sh recreate <service|group> [<service|group> ...]"
-    echo ""
-    print_available
-    exit 1
-fi
-
-build_service_map
-
-for target in "$@"; do
-    if [ -z "${SERVICE_FILE[$target]}" ] && [ -z "${GROUP_FILE[$target]}" ]; then
-        log_error "Unknown service or group: $target"
-        echo ""
-        print_available
-        exit 1
-    fi
-done
-
-log_section "Recreating Services"
-failed=0
-for target in "$@"; do
-    if [ -n "${SERVICE_FILE[$target]}" ]; then
-        recreate_service "${SERVICE_FILE[$target]}" "$target" || failed=1
-    elif [ -n "${GROUP_FILE[$target]}" ]; then
-        file=${GROUP_FILE[$target]}
-        for svc in $(docker compose -f "$file" config --services); do
-            recreate_service "$file" "$svc" || failed=1
-        done
-    fi
-done
-
-if [ "$failed" -ne 0 ]; then
-    log_error "Some services failed to be recreated"
-    exit 1
-fi
-log_success "Done"

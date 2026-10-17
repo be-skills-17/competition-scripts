@@ -1,10 +1,6 @@
-#!/bin/bash
-
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
-
 # Export all environment variables to .env file
 export_environment_variables() {
-    local output_file=${1:-.env}
+    local output_file=${1:-$BASE_DIR/.env}
     
     log_info "Exporting environment variables to $output_file"
     
@@ -24,7 +20,6 @@ GITEA_TOKEN="$GITEA_TOKEN"
 REGISTRATION_TOKEN="$REGISTRATION_TOKEN"
 BASE_DIR="$BASE_DIR"
 CONFIG_DIR="$CONFIG_DIR"
-SCRIPTS_DIR="$SCRIPTS_DIR"
 DOCKER_DIR="$DOCKER_DIR"
 DATA_DIR="$DATA_DIR"
 DYNAMIC_DOCKER_DIR="$DYNAMIC_DOCKER_DIR"
