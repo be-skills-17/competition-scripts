@@ -91,3 +91,9 @@ HOOKS
     run grep -rnE 'dynamic/(docker|frameworks|dashboard|portal|competitors|apis)|DYNAMIC_[A-Z]+_DIR' "$REPO_DIR/src"
     [ "$status" -ne 0 ]
 }
+
+@test "deploy-apis does not call other services directly (they refresh through their pre_up hook)" {
+    run grep -nE 'portal|dashboard' "$REPO_DIR/src/deploy_apis_command.sh"
+    [[ "$output" != *write_* ]]
+    grep -q 'run_service_hook "$name" pre_up' "$REPO_DIR/src/deploy_apis_command.sh"
+}

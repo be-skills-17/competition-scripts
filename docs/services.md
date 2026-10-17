@@ -32,7 +32,7 @@ services/
 | `validate` | `check-config`, `init`, `import-frameworks`, `deploy-apis`... | prints one line per problem in the service's own configuration (e.g. `api.json` files) |
 | `compose_file` | every command | prints the compose file path, if it is not the service's `compose.yaml` |
 | `pre_init` | `init` | before the first `docker compose up` (generate files, prepare data directories) |
-| `pre_up` | `init`, `restore`, `recreate` | before every `docker compose up` (files the containers mount) |
+| `pre_up` | `init`, `restore`, `recreate`, `deploy-apis` | before every `docker compose up` (files the containers mount); also when something they may show changed (`deploy-apis`). Must be safe to run again at any time |
 | `wait_ready` | `init`, `restore` | after `docker compose up`, returns once the service answers |
 | `post_init` | `init` | once the service is ready (create users, import data...) |
 | `clean` | `clean`, `restore` | after the containers are removed, before `data/` is deleted |
