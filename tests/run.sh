@@ -21,7 +21,7 @@ if docker run --rm --user "$(id -u):$(id -g)" -v "$tmp:/app" "$BASHLY_IMAGE" gen
     && cmp -s "$tmp/competition.sh" "$REPO_DIR/competition.sh"; then
     ok "up to date"
 else
-    ko "competition.sh differs from src/: regenerate it (see README, Development)"
+    ko "competition.sh differs from src/: regenerate it (see docs/development.md)"
 fi
 
 step "shellcheck"
