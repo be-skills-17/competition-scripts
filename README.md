@@ -326,6 +326,7 @@ and need no regeneration.
 ```
 bashly-settings.yml        # bashly settings (source dir, production mode)
 services/                  # one directory per service, see "Services" below
+tests/                     # run.sh (all checks), *.bats tests, fixtures/, Dockerfile of the test runner
 src/
   bashly.yml               # commands, arguments, flags, filters, dependencies and help texts
   initialize.sh            # runs first: loads .env and defines paths
@@ -344,6 +345,21 @@ docker run --rm --user $(id -u):$(id -g) -v "$PWD:/app" dannyben/bashly:2.0.0 ge
 ```
 
 Commit both `src/` and the generated `competition.sh`, so users never need bashly.
+
+### Tests
+
+```bash
+tests/run.sh                      # everything
+tests/run.sh tests/config.bats    # a single test file
+```
+
+`tests/run.sh` only needs Docker. It checks that:
+1. `competition.sh` is up to date with `src/` (regenerated in a temporary directory and compared);
+2. `competition.sh`, the `service.sh` files and `tests/run.sh` pass [shellcheck](https://www.shellcheck.net);
+3. the [bats](https://bats-core.readthedocs.io) tests in `tests/*.bats` pass. They cover the logic that needs
+   neither Docker nor Gitea: config validation, service discovery and hooks, backups, `.env` loading, generated
+   files (compose, SQL), filters and the spinner. Each test runs in a temporary project directory built from
+   `tests/fixtures/main.json`; the real `config/`, `data/` and containers are never touched.
 
 - Adding a command: declare it in `src/bashly.yml`, run the generate command above; bashly creates
   `src/<command>_command.sh` for you to fill.

@@ -1,0 +1,15 @@
+{
+  "domain": "competition.test",
+  "enable_https": true,
+  "username": "admin",
+  "password": "admin password!",
+  "modules": ["module-a", "module-b"],
+  "frameworks": {
+    "frameworks_repo": "https://example.com/frameworks.git",
+    "allowed_frameworks": ["laravel", "react"]
+  },
+  "competitors": [
+    { "name": "Alice", "username": "comp01", "password": "pass01", "subdomain": "alpha" },
+    { "username": "comp02", "password": "pass 02", "subdomain": "beta" }
+  ]
+}
