@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "name": "template",
   "host": "{subdomain}-template",
   "document_root": "public",
