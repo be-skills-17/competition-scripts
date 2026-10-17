@@ -26,7 +26,7 @@ src/initialize.sh         runs before arg parsing (even --help): BASE_DIR, load_
 src/before.sh             runs after parsing and filters: global --verbose (must be placed BEFORE the command)
 src/<cmd>_command.sh      one per command (dashes -> underscores: import_frameworks_command.sh)
 src/lib/*.sh              shared functions, bundled into competition.sh by bashly
-services/<NN>-<name>/     compose.yaml + optional service.sh hooks, loaded at RUNTIME (not bundled)
+services/<NN>-<name>/     compose.yaml + optional service.sh (hooks) and lib/*.sh (helpers), loaded at RUNTIME
 config/main.json          competition config (validated by check-config / filter_valid_config)
 config/apis/<dir>/        organizer PHP APIs, gitignored except config/apis/template/ (disabled)
 data/                     persistent data (bind mounts), root/container-owned
@@ -39,7 +39,7 @@ tests/                    run.sh, *.bats, test_helper.bash, fixtures/main.json, 
 - **Services**: `src/lib/services.sh` lists `services/[0-9]*-*/` in NN order (stop/clean reverse). Hooks are plain
   functions `service_<name>_<hook>` (dashes -> underscores) called through `run_service_hook` with a *computed*
   name, so grepping a hook name finds no caller. Hooks: `compose_file`, `pre_init`, `pre_up`, `wait_ready`, `post_init`,
-  `clean`, `validate`. `init` = for each service: pre_init, `up -d`, wait_ready, post_init (gitea's post_init creates the
+  `clean`, `validate`, `recreate_override`. `init` = for each service: pre_init, `up -d`, wait_ready, post_init (gitea's post_init creates the
   runner token, the API token and the registry login used by later services). Services whose compose file is
   generated (`competitors`, `apis`) return it from `compose_file`; `apis` writes none when no API is enabled.
 - **Config / .env**: `init` computes values from `main.json` and saves them to `.env` (domain, credentials,

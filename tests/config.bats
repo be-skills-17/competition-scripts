@@ -31,12 +31,20 @@ setup() {
 }
 
 @test "missing required fields are all reported" {
-    edit_config 'del(.domain, .username, .modules, .frameworks.frameworks_repo)'
+    edit_config 'del(.domain, .username, .modules)'
     run validate_configuration
     [[ "$output" == *"domain: required"* ]]
     [[ "$output" == *"username: required"* ]]
     [[ "$output" == *"modules: required"* ]]
+}
+
+@test "the frameworks section is checked by the gitea service (validate hook)" {
+    SERVICES_DIR="$REPO_DIR/services"
+    source "$SERVICES_DIR/20-gitea/service.sh"
+    edit_config 'del(.frameworks.frameworks_repo) | .frameworks.allowed_frameworks = "laravel"'
+    run validate_configuration
     [[ "$output" == *"frameworks.frameworks_repo: required"* ]]
+    [[ "$output" == *"frameworks.allowed_frameworks: must be a list"* ]]
 }
 
 @test "enable_https must be a boolean, not a string" {

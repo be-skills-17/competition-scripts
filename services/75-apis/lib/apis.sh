@@ -1,3 +1,6 @@
+# shellcheck shell=bash
+# APIs service helpers (loaded with service.sh)
+
 # Native PHP APIs provided by the organizers, one container per API and competitor.
 # Each API is a folder config/apis/<folder>/ (not versioned, except the template) with an api.json:
 #   enabled        true/false, disabled APIs are ignored everywhere

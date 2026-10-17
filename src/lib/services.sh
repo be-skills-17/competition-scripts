@@ -9,6 +9,9 @@
 #       post_init     init only, once the service is ready (create users, import data...)
 #       clean         clean only, after the containers are removed
 #       validate      check-config and the valid_config filter: print one line per problem in the service's config
+#       recreate_override <compose file> <container>
+#                     recreate only: print compose YAML merged over the service's compose file (e.g. keep an image)
+# Helpers used by the hooks and by the service's own commands go in services/<NN>-<name>/lib/*.sh.
 
 # Service names in start order
 service_names() {

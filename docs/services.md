@@ -24,6 +24,8 @@ services/
 - Files generated for the service (a generated compose file, configs mounted in containers...) go to
   `dynamic/<name>/` (`service_dynamic_dir <name>`, `${DYNAMIC_DIR}/<name>/` in a compose file). The core backs up
   and cleans `dynamic/` as a whole: a service never needs changes in `src/`.
+- `lib/*.sh` (optional) holds the service's helper functions, used by its hooks and by its own commands
+  (`deploy-apis` uses `services/75-apis/lib/apis.sh`). Loaded with `service.sh`.
 - `service.sh` is optional and defines hooks named `service_<name>_<hook>` (dashes in `<name>` become
   underscores). Every hook is optional:
 
@@ -35,6 +37,7 @@ services/
 | `pre_up` | `init`, `restore`, `recreate`, `deploy-apis` | before every `docker compose up` (files the containers mount); also when something they may show changed (`deploy-apis`). Must be safe to run again at any time |
 | `wait_ready` | `init`, `restore` | after `docker compose up`, returns once the service answers |
 | `post_init` | `init` | once the service is ready (create users, import data...) |
+| `recreate_override` | `recreate` | prints compose YAML merged over the service's compose file for the container being recreated (the competitors keep the image deployed by WUD) |
 | `clean` | `clean`, `restore` | after the containers are removed, before `data/` is deleted |
 
 `init` runs, for each service in order: `pre_init`, `pre_up`, `up -d`, `wait_ready`, `post_init`. A service can use what

@@ -1,3 +1,6 @@
+# shellcheck shell=bash
+# Gitea service helpers: admin, tokens, organizations and teams (loaded with service.sh)
+
 # Create admin user in Gitea
 create_admin_user() {
     local username=$1
@@ -71,69 +74,6 @@ load_personal_access_token() {
     sed -i '/^GITEA_TOKEN=/d' "$env_file"
     echo "GITEA_TOKEN=\"$GITEA_TOKEN\"" >> "$env_file"
     log_success "Token saved to $env_file"
-}
-
-# Create user-level action secret
-create_user_secret() {
-    local user=$1
-    local pass=$2
-    local secret_name=$3
-    local secret_value=$4
-    
-    curl -s -k -X PUT \
-        -u "$user:$pass" \
-        -H "Content-Type: application/json" \
-        -d "{\"data\": \"$secret_value\"}" \
-        "$GITEA_URL/api/v1/user/actions/secrets/$secret_name" > /dev/null
-}
-
-# Create all standard secrets for a user
-create_user_secrets() {
-    local user=$1
-    local pass=$2
-    
-    log_info "Creating user-level secrets for $user..."
-    
-    create_user_secret "$user" "$pass" "USER" "$user"
-    create_user_secret "$user" "$pass" "PASS" "$pass"
-    create_user_secret "$user" "$pass" "DOMAIN" "$DOMAIN"
-    create_user_secret "$user" "$pass" "NPM_REGISTRY_URL" "http://verdaccio:4873"
-    create_user_secret "$user" "$pass" "SERVER_IP" "127.0.0.1"
-}
-
-# Create competitor user in Gitea
-create_competitor_user() {
-    local username=$1
-    local password=$2
-    
-    log_info "Creating Gitea user: $username"
-    docker exec gitea su -c "/app/gitea/gitea admin user create --username '$username' --password '$password' --email '$username@example.com' --must-change-password=false" git
-}
-
-# Add user to team
-add_competitor_to_team() {
-    local org=$1
-    local team=$2
-    local user=$3
-    
-    local team_id response
-
-    team_id=$(curl -k -s -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/orgs/$org/teams/search?q=$team" \
-        | awk -F'"id":' '{print $2}' | awk -F',' '{print $1}' | head -n 1)
-    if [ -z "$team_id" ] || [ "$team_id" == "null" ]; then
-        log_error "Failed to retrieve team ID for team '$team' in organization '$org'."
-        return 1
-    fi
-
-    response=$(curl -k -s -o /dev/null -w "%{http_code}" -X PUT \
-        -H "Content-Type: application/json" \
-        -H "Authorization: token $GITEA_TOKEN" \
-        "$GITEA_URL/api/v1/teams/$team_id/members/$user")
-    if [ "$response" -ne 204 ]; then
-        log_error "Failed to add user '$user' to team '$team' in organization '$org'. HTTP status code: $response"
-        return 1
-    fi
-    log_info "User '$user' added to team '$team' in organization '$org'."
 }
 
 # Create a team in an organization

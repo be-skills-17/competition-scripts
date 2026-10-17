@@ -97,3 +97,16 @@ HOOKS
     [[ "$output" != *write_* ]]
     grep -q 'run_service_hook "$name" pre_up' "$REPO_DIR/src/deploy_apis_command.sh"
 }
+
+@test "src/lib only holds the core, service helpers live in services/<NN>-<name>/lib" {
+    run ls "$REPO_DIR/src/lib"
+    [ "$output" = $'backup.sh\nclean.sh\nconfig.sh\nenvironment.sh\nfilters.sh\nlogging.sh\nrecreate.sh\nservices.sh' ]
+}
+
+@test "recreate_override output is used as a compose override" {
+    add_service 60-keep --hooks <<'HOOKS'
+service_keep_recreate_override() { printf 'services:\n  %s:\n    image: kept\n' "$2"; }
+HOOKS
+    run run_service_hook keep recreate_override "$SERVICES_DIR/60-keep/compose.yaml" app
+    [ "$output" = $'services:\n  app:\n    image: kept' ]
+}

@@ -9,7 +9,7 @@ setup_project() {
     cp "$REPO_DIR/tests/fixtures/main.json" "$BASE_DIR/config/main.json"
 
     local lib
-    for lib in "$REPO_DIR"/src/lib/*.sh; do
+    for lib in "$REPO_DIR"/src/lib/*.sh "$REPO_DIR"/services/*/lib/*.sh; do
         # shellcheck disable=SC1090
         source "$lib"
     done

@@ -16,7 +16,8 @@ src/
   lib/                     # functions shared by the commands
     services.sh            # service discovery, hooks and compose helpers
     filters.sh             # root / initialized checks used by the commands' filters
-    logging.sh, config.sh, gitea.sh, frameworks.sh, competitors.sh, backup.sh, clean.sh, recreate.sh...
+    logging.sh, config.sh, environment.sh, backup.sh, clean.sh, recreate.sh
+                           # only the core: everything specific to one service is in services/<NN>-<name>/
 ```
 
 Regenerate `competition.sh` after any change (only Docker is needed, no Ruby):

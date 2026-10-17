@@ -24,3 +24,15 @@ service_competitors_clean() {
     done
     log_success "Competitor images removed"
 }
+
+# recreate_override <compose file> <container>: competitor images are bumped by WUD after the initial 1.0.0; keep
+# the image currently running instead of rolling the competitor back to the tag written in the compose file
+service_competitors_recreate_override() {
+    local file=$1 svc=$2 running wanted
+    running=$(docker inspect "$svc" --format '{{.Config.Image}}' 2> /dev/null)
+    wanted=$(docker compose -f "$file" config --format json | jq -r --arg s "$svc" '.services[$s].image')
+    if [ -n "$running" ] && [ "$running" != "$wanted" ]; then
+        log_info "Keeping currently deployed image $running (compose file says $wanted)" >&2
+        printf 'services:\n  %s:\n    image: %s\n' "$svc" "$running"
+    fi
+}

@@ -413,157 +413,6 @@ normalize_input() {
   done
 }
 
-# Native PHP APIs provided by the organizers, one container per API and competitor.
-# Each API is a folder config/apis/<folder>/ (not versioned, except the template) with an api.json:
-#   enabled        true/false, disabled APIs are ignored everywhere
-#   name           used in container names (<username>_<name>) and data/apis/<name>/
-#   host           host name without the domain, with {subdomain} and/or {username}, e.g. "{subdomain}-api"
-#   document_root  folder served by Apache, relative to the API folder (default ".")
-#   php_version    image php:<version>-apache (default "8.3")
-#   sqlite         initial SQLite database, relative to the API folder, copied once per competitor (optional)
-#   env            extra environment variables (optional)
-
-APIS_DEFAULT_PHP_VERSION="8.3"
-
-# Folders of the enabled APIs, one per line
-enabled_apis() {
-    local file
-    for file in "$CONFIG_DIR"/apis/*/api.json; do
-        [ -f "$file" ] || continue
-        [ "$(jq -r '.enabled' "$file" 2> /dev/null)" = "true" ] && dirname "$file"
-    done
-}
-
-# api_field <api folder> <jq filter>: print a field of the API's api.json
-api_field() {
-    jq -r "$2" "$1/api.json"
-}
-
-# Folder of the enabled API named <name>
-api_dir_by_name() {
-    local dir
-    for dir in $(enabled_apis); do
-        [ "$(api_field "$dir" .name)" = "$1" ] && echo "$dir" && return 0
-    done
-    return 1
-}
-
-# Host name (without the domain) of an API for a competitor
-api_host() {
-    local dir=$1 username=$2 subdomain=$3
-    local host
-    host=$(api_field "$dir" .host)
-    host=${host//\{subdomain\}/$subdomain}
-    echo "${host//\{username\}/$username}"
-}
-
-# Folder holding a competitor's writable copy of the API's SQLite database
-api_data_dir() {
-    echo "$DATA_DIR/apis/$1/$2"
-}
-
-# Copy the initial SQLite database for each competitor, unless it already exists (a redeploy keeps data).
-# With --reset, existing copies are replaced. Apache runs as www-data (uid 33) and SQLite needs to write
-# next to the database (journal), so the whole folder belongs to it.
-prepare_api_data() {
-    local dir=$1 only_user=${2:-} reset=${3:-false}
-    local name sqlite username data_dir
-    name=$(api_field "$dir" .name)
-    sqlite=$(api_field "$dir" '.sqlite // empty')
-
-    for username in $(jq -r '.competitors[].username' "$CONFIG_DIR/main.json"); do
-        [ -n "$only_user" ] && [ "$username" != "$only_user" ] && continue
-        data_dir=$(api_data_dir "$name" "$username")
-        mkdir -p "$data_dir"
-        if [ -n "$sqlite" ] && { [ "$reset" = true ] || [ ! -f "$data_dir/$(basename "$sqlite")" ]; }; then
-            rm -rf "${data_dir:?}"/*
-            cp "$dir/$sqlite" "$data_dir/"
-        fi
-        chown -R 33:33 "$data_dir"
-    done
-}
-
-# Write the compose file of every enabled API for every competitor (removed when no API is enabled)
-generate_apis_compose() {
-    local file=$1
-    local dirs dir name host php_version document_root sqlite env_json username subdomain service
-
-    mapfile -t dirs < <(enabled_apis)
-    if [ ${#dirs[@]} -eq 0 ]; then
-        rm -f "$file"
-        return
-    fi
-
-    mkdir -p "$(dirname "$file")"
-    echo "services:" > "$file"
-    for dir in "${dirs[@]}"; do
-        name=$(api_field "$dir" .name)
-        php_version=$(api_field "$dir" ".php_version // \"$APIS_DEFAULT_PHP_VERSION\"")
-        document_root=$(api_field "$dir" '.document_root // "."')
-        sqlite=$(api_field "$dir" '.sqlite // empty')
-        # Extra variables, as YAML lines ("      KEY: "value""); "$" is doubled so compose keeps it as-is
-        env_json=$(api_field "$dir" '(.env // {}) | to_entries[] | "      \(.key): \(.value | gsub("\\$"; "$$") | tojson)"')
-
-        while IFS=$'\t' read -r username subdomain; do
-            service="${username}_${name}"
-            host="$(api_host "$dir" "$username" "$subdomain").$DOMAIN"
-            cat <<EOF >> "$file"
-  ${service}:
-    image: php:${php_version}-apache
-    container_name: ${service}
-    restart: always
-    command: ["sh", "/usr/local/bin/start-apache.sh"]
-    networks:
-      - gitea
-    environment:
-      APACHE_DOCUMENT_ROOT: /var/www/api/${document_root}
-      API_NAME: ${name}
-      COMPETITOR: ${username}
-      DB_PATH: /var/www/data/$(basename "${sqlite:-database.sqlite}")
-${env_json}
-    volumes:
-      - "${dir}:/var/www/api:ro"
-      - "$(api_data_dir "$name" "$username"):/var/www/data"
-      - "${SERVICES_DIR}/$(basename "$(service_dir apis)")/start-apache.sh:/usr/local/bin/start-apache.sh:ro"
-    labels:
-      competition.api: "${name}"
-      wud.watch: "false"
-      traefik.enable: "true"
-      traefik.http.routers.${service}.rule: Host(\`${host}\`)
-      traefik.http.routers.${service}.entrypoints: ${ENTRYPOINT}
-      traefik.http.routers.${service}.tls: "${ENABLE_HTTPS}"
-      traefik.http.routers.${service}.middlewares: ${service}-cors
-      traefik.http.middlewares.${service}-cors.headers.accessControlAllowOriginList: "*"
-      traefik.http.middlewares.${service}-cors.headers.accessControlAllowMethods: GET,POST,PUT,PATCH,DELETE,OPTIONS
-      traefik.http.middlewares.${service}-cors.headers.accessControlAllowHeaders: "*"
-      traefik.http.middlewares.${service}-cors.headers.addVaryHeader: "true"
-      traefik.http.services.${service}.loadbalancer.server.port: 80
-EOF
-        done < <(jq -r '.competitors[] | [.username, .subdomain] | @tsv' "$CONFIG_DIR/main.json")
-    done
-
-    cat <<EOF >> "$file"
-
-networks:
-  gitea:
-    external: true
-EOF
-}
-
-# Remove API containers that are not in the compose file anymore (API disabled or deleted).
-# Compose's --remove-orphans can't be used: every service shares the same compose project.
-remove_stale_api_containers() {
-    local file=$1
-    local wanted container
-    wanted=" $( [ -f "$file" ] && docker compose -f "$file" config --services 2> /dev/null | tr '\n' ' ') "
-    for container in $(docker ps -a --filter label=competition.api --format '{{.Names}}'); do
-        if [[ "$wanted" != *" $container "* ]]; then
-            log_info "Removing $container (API disabled or removed)"
-            docker rm -f "$container" > /dev/null
-        fi
-    done
-}
-
 # Everything needed to bring an environment back, relative to $BASE_DIR (dynamic/: files generated by every
 # service). Competitor images live in Gitea's container registry, so they are inside data/gitea.
 BACKUP_ITEMS=(data config dynamic .env competition.lock)
@@ -671,107 +520,6 @@ clean_environment() {
     log_success "Clean complete! Environment reset. 🧹"
 }
 
-# Initialize competitors compose file
-initialize_competitors_config() {
-    log_info "Initializing competitors configuration..."
-
-    mkdir -p "$(dirname "$(service_compose_file competitors)")"
-    cat <<EOF > "$(service_compose_file competitors)"
-services:
-EOF
-}
-
-# Add competitor module to Docker Compose configuration
-add_competitor_module_to_compose() {
-    local user=$1
-    local module=$2
-    local subdomain=$3
-
-    cat <<EOF >> "$(service_compose_file competitors)"
-  ${user}_${module}:
-    image: git.${DOMAIN}/${user}/${module}:1.0.0
-    container_name: ${user}_${module}
-    restart: always
-    networks:
-      - gitea
-    labels:
-      - "wud.watch=true"
-      - "wud.watch.digest=true"
-      - "wud.registry=gitea.private"
-      - 'wud.tag.include=^\d+\.\d+\.\d+\$\$'
-      - "traefik.enable=true"
-      - "traefik.http.routers.${user}_${module}.rule=Host(\`${subdomain}-${module}.$DOMAIN\`)"
-      - "traefik.http.routers.${user}_${module}.entrypoints=${ENTRYPOINT}"
-      - "traefik.http.routers.${user}_${module}.tls=${ENABLE_HTTPS}"
-      - "traefik.http.services.${user}_${module}.loadbalancer.server.port=80"
-EOF
-}
-
-# Push initial container image for competitor module
-push_initial_module_image() {
-    local user=$1
-    local module=$2
-
-    log_debug "Pushing initial container for $user/$module"
-    docker tag nginx:latest git.$DOMAIN/$user/$module:1.0.0
-    docker tag nginx:latest git.$DOMAIN/$user/$module:latest
-
-    run_with_spinner "Pushing initial image for $user/$module..." \
-        docker push --all-tags git.$DOMAIN/$user/$module
-}
-
-# Process a single competitor module
-process_competitor_module() {
-    local user=$1
-    local module=$2
-    local subdomain=$3
-
-    log_debug "Processing module: $module for $user"
-
-    add_competitor_module_to_compose "$user" "$module" "$subdomain"
-    push_initial_module_image "$user" "$module"
-}
-
-# Process a single competitor
-process_competitor() {
-    local name=$1
-    local username=$2
-    local password=$3
-    local subdomain=$4
-
-    log_subsection "Competitor: $name (subdomain: $subdomain)"
-
-    create_competitor_user "$username" "$password"
-    add_competitor_to_team "frameworks" "competitors" "$username"
-    create_user_secrets "$username" "$password"
-
-    for module in $MODULES; do
-        process_competitor_module "$username" "$module" "$subdomain"
-    done
-}
-
-# Process all competitors from configuration file ("name" is optional, the username is shown instead)
-process_all_competitors() {
-    local config_file=$1
-    local name username password subdomain
-
-    log_section "Processing All Competitors"
-
-    while IFS=$'\t' read -r name username password subdomain; do
-        process_competitor "$name" "$username" "$password" "$subdomain"
-    done < <(jq -r '.competitors[] | [.name // .username, .username, .password, .subdomain] | @tsv' "$config_file")
-}
-
-# Finalize Docker Compose configuration
-finalize_docker_compose_config() {
-    cat <<EOF >> "$(service_compose_file competitors)"
-
-networks:
-  gitea:
-    external: true
-EOF
-}
-
 # Load and export configuration from main.json
 load_configuration() {
     local config_file=$CONFIG_DIR/main.json
@@ -782,8 +530,6 @@ load_configuration() {
     export USERNAME=$(jq -r '.username' "$config_file")
     export PASSWORD=$(jq -r '.password' "$config_file")
     export MODULES=$(jq -r '.modules | join(" ")' "$config_file")
-    export FRAMEWORKS_REPO=$(jq -r '.frameworks.frameworks_repo' "$config_file")
-    export ALLOWED_FRAMEWORKS=$(jq -r '.frameworks.allowed_frameworks | join(" ")' "$config_file")
 }
 
 # Setup HTTP/HTTPS related variables
@@ -855,9 +601,6 @@ validate_configuration() {
         check(.password | password; "password: required, without quotes, backslashes or control characters (tab...)"),
         check(.modules | type == "array" and length > 0 and all(.[]; name);
             "modules: required, a non-empty list of names (lowercase letters, digits and dashes)"),
-        check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
-        check(.frameworks.allowed_frameworks | . == null or (type == "array" and all(.[]; text));
-            "frameworks.allowed_frameworks: must be a list of framework names"),
 
         if (.competitors | type == "array" and length > 0) | not then
             "competitors: required, a non-empty list"
@@ -956,344 +699,6 @@ filter_valid_config() {
     if [ -n "$errors" ]; then
         printf 'Invalid configuration:\n%s\n' "$(sed 's/^/  - /' <<< "$errors")"
     fi
-}
-
-# Import a framework from a local path
-import_framework() {
-    local framework_path=$1
-    local framework_name=$2
-
-    # Check if .npmrc exists and replace ##DOMAIN## with actual domain
-    if [ -f "$framework_path/.npmrc" ]; then
-        log_info "Found .npmrc in $framework_name, replacing ##DOMAIN## with $DOMAIN"
-        sed -i "s/##DOMAIN##/$DOMAIN/g" "$framework_path/.npmrc"
-        log_info ".npmrc updated with domain: $DOMAIN"
-    fi
-
-    push_framework_repo "$framework_path" "$framework_name"
-}
-
-# Create (or update) the template repository <name> in the "frameworks" organization from a local folder.
-# Runs in a subshell: it changes directory and may exit early.
-push_framework_repo() (
-    local repo_path=$1
-    local repo_name=$2
-    local org_name='frameworks'
-    local host="git.${DOMAIN}"
-    local remote_url="https://$USERNAME:$PASSWORD@$host/$org_name/$repo_name.git"
-
-    cd "$repo_path" || exit 1
-
-    local repo_status
-    repo_status=$(curl -s -k -o /dev/null -w '%{http_code}' -H "Authorization: token $GITEA_TOKEN" "https://$host/api/v1/repos/$org_name/$repo_name")
-
-    if [ "$repo_status" = "200" ]; then
-        # The template already exists: commit the new content on top of its history instead of recreating it,
-        # so repositories generated from it keep their link and nothing is force-pushed.
-        echo "Repository $repo_name already exists, updating it..."
-        rm -rf .git
-        local tmp_clone
-        tmp_clone=$(mktemp -d)
-        if ! git -c http.sslVerify=false clone --quiet --no-checkout "$remote_url" "$tmp_clone" > $REDIRECT 2>&1; then
-            rm -rf "$tmp_clone"
-            echo "Failed to clone $org_name/$repo_name from Gitea"
-            exit 1
-        fi
-        mv "$tmp_clone/.git" .git
-        rm -rf "$tmp_clone"
-        git config user.name "Init Bot"
-        git config user.email "init-bot@$DOMAIN"
-        git config http.sslVerify false
-
-        git add -A
-        if git diff --cached --quiet; then
-            echo "Repository $repo_name is already up to date."
-            exit 0
-        fi
-        git commit -m "Update framework" > $REDIRECT 2>&1
-        git push origin HEAD > $REDIRECT 2>&1 || {
-            echo "Failed to push $repo_name to Gitea"
-            exit 1
-        }
-        echo "Repository $repo_name updated in the $org_name organization !"
-        exit 0
-    fi
-
-    echo "Configuring git repository..."
-    git init -b main > $REDIRECT 2>&1
-    git config user.name "Init Bot"
-    git config user.email "init-bot@$DOMAIN"
-    git config http.sslVerify false
-
-    echo "Commiting changes..."
-    git add -A
-    git commit -m "Initial commit" > $REDIRECT 2>&1
-
-    echo "Creating the repository on Gitea"
-    local create_repo_response
-    create_repo_response=$(curl -s -k -X POST "https://$host/api/v1/orgs/$org_name/repos" \
-        -H "Authorization: token $GITEA_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d '{
-          "name": "'"$repo_name"'",
-          "private": false,
-          "template": true
-        }')
-
-    if echo "$create_repo_response" | grep -q '"id":'; then
-        echo "Repository $repo_name created in the $org_name organization on Gitea."
-    else
-        echo "Failed to create repository on Gitea: $create_repo_response"
-        exit 1
-    fi
-
-    echo "Pushing the repository to Gitea..."
-    git remote remove gitea 2>/dev/null
-    git remote add gitea "$remote_url"
-    git push -u gitea main --force > $REDIRECT 2>&1
-
-    echo "Repository $repo_name pushed to the $org_name organization !"
-)
-
-# Setup Docker credentials for registry
-setup_docker_registry_credentials() {
-    log_info "Setting up Docker registry credentials..."
-
-    run_with_spinner "Pulling nginx image..." docker pull nginx:latest
-    docker login -u $USERNAME -p $PASSWORD git.$DOMAIN > /dev/null 2>&1
-    log_success "Docker registry credentials configured"
-}
-
-# Clone and process frameworks repository, importing only allowed frameworks
-import_all_frameworks() {
-    log_section "Importing Frameworks"
-
-    if [ -z "$ALLOWED_FRAMEWORKS" ]; then
-        log_warning "No allowed_frameworks configured, importing all frameworks"
-    fi
-
-    # Temporary clone, removed once imported
-    local clone
-    clone=$(mktemp -d)
-    run_with_spinner "Cloning frameworks repository..." git clone "$FRAMEWORKS_REPO" "$clone" || { rm -rf "$clone"; exit 1; }
-
-    cd "$clone" || exit 1
-    rm -rf "$clone/.git"
-
-    local imported=() failed=()
-    for dir in */; do
-        [ -d "$dir" ] || continue
-        framework_name=$(basename "$dir")
-
-        # Skip frameworks not in the allow list (exact, case-sensitive match)
-        if [ -n "$ALLOWED_FRAMEWORKS" ] && [[ " $ALLOWED_FRAMEWORKS " != *" $framework_name "* ]]; then
-            log_info "Skipping $framework_name (not in allowed_frameworks)"
-            continue
-        fi
-
-        framework_path=$(realpath "$dir")
-        log_subsection "Framework: $framework_name"
-        if run_with_spinner "Importing $framework_name..." import_framework "$framework_path" "$framework_name"; then
-            log_success "$framework_name imported"
-            imported+=("$framework_name")
-        else
-            failed+=("$framework_name")
-        fi
-    done
-
-    # Warn about allowed frameworks that don't exist in the repository
-    for allowed in $ALLOWED_FRAMEWORKS; do
-        [[ " ${imported[*]} ${failed[*]} " == *" $allowed "* ]] || log_warning "Allowed framework '$allowed' not found in repository"
-    done
-
-    log_success "Imported ${#imported[@]} framework(s): ${imported[*]}"
-    [ ${#failed[@]} -eq 0 ] || log_error "Failed: ${failed[*]}"
-    cd - > /dev/null || exit 1
-    rm -rf "$clone"
-    [ ${#failed[@]} -eq 0 ]
-}
-
-# Create admin user in Gitea
-create_admin_user() {
-    local username=$1
-    local password=$2
-
-    log_info "Creating Gitea admin user: $username"
-    docker exec gitea su -c "/app/gitea/gitea admin user create --username $username --password $password --email $username@example.com --admin" git
-}
-
-# Generate registration token for Gitea runner
-generate_registration_token() {
-    log_info "Generating registration token for Gitea runner..."
-    local token=$(docker exec gitea su -c '/app/gitea/gitea actions generate-runner-token' git)
-    export REGISTRATION_TOKEN=$token
-    log_success "Registration Token: $REGISTRATION_TOKEN"
-}
-
-# Create organization in Gitea
-create_organization() {
-    local org_name=$1
-
-    log_info "Creating organization: $org_name"
-    curl -s -k -X POST "$GITEA_URL/api/v1/orgs" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: token $GITEA_TOKEN" \
-        -d "{
-            \"username\": \"$org_name\",
-            \"full_name\": \"$org_name\"
-        }" > /dev/null
-}
-
-# Create a personal access token for the admin and print it. Gitea refuses two tokens with the same name.
-create_pat() {
-    local token_name=${1:-CreateOrganizationScript}
-    local response new_token
-
-    response=$(curl -s -k -X POST -H "Content-Type: application/json" \
-        -u "$USERNAME:$PASSWORD" \
-        -d '{
-              "name": "'"$token_name"'",
-              "scopes": ["read:admin","write:organization,write:repository,write:user"]
-            }' \
-        "$GITEA_URL/api/v1/users/$USERNAME/tokens")
-
-    new_token=$(echo "$response" | grep -o '"sha1":"[^"]*"' | sed 's/"sha1":"//;s/"//g')
-    if [ -z "$new_token" ] || [ "$new_token" == "null" ]; then
-        echo "Failed to create token. Response: $response"
-        return 1
-    fi
-    echo "$new_token"
-}
-
-# Returns 0 if $GITEA_TOKEN is accepted by Gitea
-gitea_token_is_valid() {
-    [ -n "$GITEA_TOKEN" ] || return 1
-    [ "$(curl -s -k -o /dev/null -w '%{http_code}' -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/user")" = "200" ]
-}
-
-# Use the token stored in .env by init. Installations made before it was stored get a new one,
-# under a unique name (Gitea refuses duplicate names), saved to .env so this only happens once.
-load_personal_access_token() {
-    local env_file=$1
-    gitea_token_is_valid && return 0
-
-    log_warning "No valid GITEA_TOKEN in $env_file, creating a new one"
-    export GITEA_TOKEN=$(create_pat "competition-scripts-$(date +%Y%m%d%H%M%S)")
-    if ! gitea_token_is_valid; then
-        log_error "Could not get a Gitea access token: $GITEA_TOKEN"
-        return 1
-    fi
-    sed -i '/^GITEA_TOKEN=/d' "$env_file"
-    echo "GITEA_TOKEN=\"$GITEA_TOKEN\"" >> "$env_file"
-    log_success "Token saved to $env_file"
-}
-
-# Create user-level action secret
-create_user_secret() {
-    local user=$1
-    local pass=$2
-    local secret_name=$3
-    local secret_value=$4
-
-    curl -s -k -X PUT \
-        -u "$user:$pass" \
-        -H "Content-Type: application/json" \
-        -d "{\"data\": \"$secret_value\"}" \
-        "$GITEA_URL/api/v1/user/actions/secrets/$secret_name" > /dev/null
-}
-
-# Create all standard secrets for a user
-create_user_secrets() {
-    local user=$1
-    local pass=$2
-
-    log_info "Creating user-level secrets for $user..."
-
-    create_user_secret "$user" "$pass" "USER" "$user"
-    create_user_secret "$user" "$pass" "PASS" "$pass"
-    create_user_secret "$user" "$pass" "DOMAIN" "$DOMAIN"
-    create_user_secret "$user" "$pass" "NPM_REGISTRY_URL" "http://verdaccio:4873"
-    create_user_secret "$user" "$pass" "SERVER_IP" "127.0.0.1"
-}
-
-# Create competitor user in Gitea
-create_competitor_user() {
-    local username=$1
-    local password=$2
-
-    log_info "Creating Gitea user: $username"
-    docker exec gitea su -c "/app/gitea/gitea admin user create --username '$username' --password '$password' --email '$username@example.com' --must-change-password=false" git
-}
-
-# Add user to team
-add_competitor_to_team() {
-    local org=$1
-    local team=$2
-    local user=$3
-
-    local team_id response
-
-    team_id=$(curl -k -s -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/orgs/$org/teams/search?q=$team" \
-        | awk -F'"id":' '{print $2}' | awk -F',' '{print $1}' | head -n 1)
-    if [ -z "$team_id" ] || [ "$team_id" == "null" ]; then
-        log_error "Failed to retrieve team ID for team '$team' in organization '$org'."
-        return 1
-    fi
-
-    response=$(curl -k -s -o /dev/null -w "%{http_code}" -X PUT \
-        -H "Content-Type: application/json" \
-        -H "Authorization: token $GITEA_TOKEN" \
-        "$GITEA_URL/api/v1/teams/$team_id/members/$user")
-    if [ "$response" -ne 204 ]; then
-        log_error "Failed to add user '$user' to team '$team' in organization '$org'. HTTP status code: $response"
-        return 1
-    fi
-    log_info "User '$user' added to team '$team' in organization '$org'."
-}
-
-# Create a team in an organization
-create_team() {
-    local org=$1
-    local team=$2
-    local can_create_org_repo=$3
-    local response team_id
-
-    response=$(curl -k -s -X POST -H "Content-Type: application/json" \
-        -H "Authorization: token $GITEA_TOKEN" \
-        -d '{
-              "name": "'"$team"'",
-              "can_create_org_repo": '"$can_create_org_repo"',
-              "units_map": {
-                "repo.actions": "read",
-                "repo.packages": "none",
-                "repo.code": "write",
-                "repo.issues": "write",
-                "repo.ext_issues": "none",
-                "repo.wiki": "admin",
-                "repo.pulls": "owner",
-                "repo.releases": "none",
-                "repo.projects": "none",
-                "repo.ext_wiki": "none"
-              }
-            }' \
-        "$GITEA_URL/api/v1/orgs/$org/teams")
-
-    team_id=$(echo "$response" | awk -F'"id":' '{print $2}' | awk -F',' '{print $1}')
-    if [ -z "$team_id" ] || [ "$team_id" == "null" ]; then
-        log_error "Failed to create team. Response: $response"
-        return 1
-    fi
-    log_info "Created team '$team' (ID: $team_id)"
-}
-
-# Setup basic organizations and teams
-setup_organizations_and_teams() {
-    log_section "Setting up Organizations and Teams"
-
-    create_organization "images"
-    create_organization "frameworks"
-
-    create_team "frameworks" "competitors" false
 }
 
 # Color definitions
@@ -1442,21 +847,17 @@ recreate_service() {
 
     log_subsection "$svc"
 
-    # Competitor images are bumped by WUD after the initial 1.0.0; keep the image currently running
-    # instead of rolling the competitor back to the tag written in competitors.yaml.
-    if [ "$file" = "$(service_compose_file competitors)" ]; then
-        local running wanted
-        running=$(docker inspect "$svc" --format '{{.Config.Image}}' 2>/dev/null)
-        wanted=$(docker compose -f "$file" config --format json | jq -r --arg s "$svc" '.services[$s].image')
-        if [ -n "$running" ] && [ "$running" != "$wanted" ]; then
-            log_info "Keeping currently deployed image $running (compose file says $wanted)"
-            override=$(mktemp --suffix=.yaml)
-            printf 'services:\n  %s:\n    image: %s\n' "$svc" "$running" > "$override"
-            files+=(-f "$override")
-        fi
+    # A service may adjust the container being recreated (recreate_override hook prints compose YAML)
+    local name content
+    name=$(service_name_for_file "$file")
+    content=$(run_service_hook "$name" recreate_override "$file" "$svc")
+    if [ -n "$content" ]; then
+        override=$(mktemp --suffix=.yaml)
+        echo "$content" > "$override"
+        files+=(-f "$override")
     fi
 
-    run_service_hook "$(service_name_for_file "$file")" pre_up
+    run_service_hook "$name" pre_up
     remove_untracked_container "$file" "$svc"
     docker compose "${files[@]}" up -d --no-deps --force-recreate "$svc"
     local status=$?
@@ -1475,6 +876,9 @@ recreate_service() {
 #       post_init     init only, once the service is ready (create users, import data...)
 #       clean         clean only, after the containers are removed
 #       validate      check-config and the valid_config filter: print one line per problem in the service's config
+#       recreate_override <compose file> <container>
+#                     recreate only: print compose YAML merged over the service's compose file (e.g. keep an image)
+# Helpers used by the hooks and by the service's own commands go in services/<NN>-<name>/lib/*.sh.
 
 # Service names in start order
 service_names() {
@@ -3446,8 +2850,9 @@ initialize() {
   export VERBOSE=false
   export REDIRECT=/dev/null
 
-  # Service hooks (see src/lib/services.sh), loaded at runtime: adding a service needs no regeneration
-  for service_file in "$SERVICES_DIR"/*/service.sh; do
+  # Services (see src/lib/services.sh), loaded at runtime: hooks in service.sh, helpers in lib/*.sh.
+  # Adding or changing a service needs no regeneration.
+  for service_file in "$SERVICES_DIR"/*/service.sh "$SERVICES_DIR"/*/lib/*.sh; do
       # shellcheck disable=SC1090
       [ -f "$service_file" ] && source "$service_file"
   done

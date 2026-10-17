@@ -8,8 +8,6 @@ load_configuration() {
     export USERNAME=$(jq -r '.username' "$config_file")
     export PASSWORD=$(jq -r '.password' "$config_file")
     export MODULES=$(jq -r '.modules | join(" ")' "$config_file")
-    export FRAMEWORKS_REPO=$(jq -r '.frameworks.frameworks_repo' "$config_file")
-    export ALLOWED_FRAMEWORKS=$(jq -r '.frameworks.allowed_frameworks | join(" ")' "$config_file")
 }
 
 # Setup HTTP/HTTPS related variables
@@ -81,9 +79,6 @@ validate_configuration() {
         check(.password | password; "password: required, without quotes, backslashes or control characters (tab...)"),
         check(.modules | type == "array" and length > 0 and all(.[]; name);
             "modules: required, a non-empty list of names (lowercase letters, digits and dashes)"),
-        check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
-        check(.frameworks.allowed_frameworks | . == null or (type == "array" and all(.[]; text));
-            "frameworks.allowed_frameworks: must be a list of framework names"),
 
         if (.competitors | type == "array" and length > 0) | not then
             "competitors: required, a non-empty list"

@@ -1,3 +1,6 @@
+# shellcheck shell=bash
+# Gitea service helpers: frameworks templates import (loaded with service.sh)
+
 # Import a framework from a local path
 import_framework() {
     local framework_path=$1
@@ -104,8 +107,12 @@ setup_docker_registry_credentials() {
     log_success "Docker registry credentials configured"
 }
 
-# Clone and process frameworks repository, importing only allowed frameworks
+# Clone and process frameworks repository, importing only allowed frameworks (config/main.json "frameworks")
 import_all_frameworks() {
+    local FRAMEWORKS_REPO ALLOWED_FRAMEWORKS
+    FRAMEWORKS_REPO=$(jq -r '.frameworks.frameworks_repo' "$CONFIG_DIR/main.json")
+    ALLOWED_FRAMEWORKS=$(jq -r '.frameworks.allowed_frameworks // [] | join(" ")' "$CONFIG_DIR/main.json")
+
     log_section "Importing Frameworks"
 
 

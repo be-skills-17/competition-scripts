@@ -53,21 +53,17 @@ recreate_service() {
 
     log_subsection "$svc"
 
-    # Competitor images are bumped by WUD after the initial 1.0.0; keep the image currently running
-    # instead of rolling the competitor back to the tag written in competitors.yaml.
-    if [ "$file" = "$(service_compose_file competitors)" ]; then
-        local running wanted
-        running=$(docker inspect "$svc" --format '{{.Config.Image}}' 2>/dev/null)
-        wanted=$(docker compose -f "$file" config --format json | jq -r --arg s "$svc" '.services[$s].image')
-        if [ -n "$running" ] && [ "$running" != "$wanted" ]; then
-            log_info "Keeping currently deployed image $running (compose file says $wanted)"
-            override=$(mktemp --suffix=.yaml)
-            printf 'services:\n  %s:\n    image: %s\n' "$svc" "$running" > "$override"
-            files+=(-f "$override")
-        fi
+    # A service may adjust the container being recreated (recreate_override hook prints compose YAML)
+    local name content
+    name=$(service_name_for_file "$file")
+    content=$(run_service_hook "$name" recreate_override "$file" "$svc")
+    if [ -n "$content" ]; then
+        override=$(mktemp --suffix=.yaml)
+        echo "$content" > "$override"
+        files+=(-f "$override")
     fi
 
-    run_service_hook "$(service_name_for_file "$file")" pre_up
+    run_service_hook "$name" pre_up
     remove_untracked_container "$file" "$svc"
     docker compose "${files[@]}" up -d --no-deps --force-recreate "$svc"
     local status=$?

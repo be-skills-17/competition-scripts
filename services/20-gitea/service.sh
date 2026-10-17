@@ -48,3 +48,14 @@ service_gitea_post_init() {
     import_all_frameworks
     setup_docker_registry_credentials
 }
+
+# config/main.json "frameworks" section (validate hook)
+service_gitea_validate() {
+    jq -r '
+        def text: type == "string" and length > 0;
+        def check(cond; message): if cond then empty else message end;
+        check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
+        check(.frameworks.allowed_frameworks | . == null or (type == "array" and all(.[]; text));
+            "frameworks.allowed_frameworks: must be a list of framework names")
+    ' "$CONFIG_DIR/main.json"
+}
