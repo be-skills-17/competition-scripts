@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(dirname "$0")/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
 
 # Import a framework from a local path
 import_framework() {

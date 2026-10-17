@@ -1,14 +1,18 @@
 #!/bin/bash
 export VERBOSE=false
 
+ARGS=()
 for arg in "$@"; do
   case $arg in
     -v|--verbose)
       export VERBOSE=true
-      shift 
+      ;;
+    *)
+      ARGS+=("$arg")
       ;;
   esac
 done
+set -- "${ARGS[@]}"
 
 if [ "$VERBOSE" = true ]; then
     export REDIRECT="/dev/stdout"
@@ -17,12 +21,14 @@ else
 fi
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <ACTION [clean,init,setup,start,stop]>"
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <ACTION [clean,init,setup,start,stop,recreate]>"
+    echo "       $0 recreate <service|group> [<service|group> ...]"
     exit 1
 fi
 
 ACTION=$1
+shift
 
 
 if [ -f .env ]; then
@@ -85,9 +91,16 @@ case $ACTION in
         fi
         bash "$ACTIONS_DIR/stop.sh"
         ;;
+    recreate)
+        if ! is_already_initialized; then
+            echo "Competition is not initialized. Please run the 'init' action first."
+            exit 1
+        fi
+        bash "$ACTIONS_DIR/recreate.sh" "$@"
+        ;;
     *)
         echo "Invalid action: $ACTION"
-        echo "Valid actions are: clean, init, setup, start, stop"
+        echo "Valid actions are: clean, init, setup, start, stop, recreate"
         exit 1
         ;;
 esac

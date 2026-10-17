@@ -55,9 +55,39 @@ sudo ./competition.sh setup
 # Stop all services
 ./competition.sh stop
 
+# Recreate one or more services without touching the rest of the stack
+./competition.sh recreate gitea
+./competition.sh recreate verdaccio wud
+./competition.sh recreate comp01_module-a
+
 # Clean the entire system (removes volumes, images, configs)
 ./competition.sh clean
 ```
+
+### Recreating a single service
+
+`./competition.sh recreate <service|group> ...` runs `docker compose up -d --no-deps --force-recreate` on the
+given services only. Run it without arguments to list the available names. A group (`traefik`, `gitea`,
+`runners`, `mysql`, `verdaccio`, `wud`, `competitors`) recreates every service of that compose file; an exact
+service name always wins (`gitea` only recreates the Gitea container, not `gitea-db`).
+
+What survives a recreate:
+
+| Service | Persistent data | Lost on recreate |
+|---|---|---|
+| traefik | `config/traefik`, `config/letsencrypt` | nothing |
+| gitea | `data/gitea` (repos, container registry, avatars, sessions), `config/gitea` | nothing |
+| gitea-db | `data/mysql-gitea` | nothing |
+| runner1..6 | `data/runnerN/.runner` (registration) | jobs running at that moment |
+| competitor_db | `data/mysql-competition` | nothing (`competitors.sql` only runs on an empty data dir) |
+| phpmyadmin | - | login sessions |
+| verdaccio | `data/verdaccio` (packages), `config/verdaccio` | nothing |
+| whatsupdocker | - | update history; it rescans within seconds |
+| competitor containers | - | anything written inside the container; the image currently deployed by WUD is kept |
+
+**Gitea migration:** earlier versions did not mount Gitea's `/data`, so it lived in an anonymous Docker volume.
+The first `./competition.sh recreate gitea` on such an installation stops Gitea, copies that volume into
+`data/gitea` and only then recreates the container. The old volume is kept as a backup (its name is printed).
 
 **Verbose mode** (shows debug information):
 ```bash

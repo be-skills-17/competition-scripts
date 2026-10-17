@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(dirname "$0")/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
 
 # Export all environment variables to .env file
 export_environment_variables() {
@@ -19,6 +19,7 @@ MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD"
 ENTRYPOINT="$ENTRYPOINT"
 GITEA_PROTOCOL="$GITEA_PROTOCOL"
 REGISTRY_PORT="$REGISTRY_PORT"
+GITEA_URL="$GITEA_URL"
 REGISTRATION_TOKEN="$REGISTRATION_TOKEN"
 BASE_DIR="$BASE_DIR"
 CONFIG_DIR="$CONFIG_DIR"

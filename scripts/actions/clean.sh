@@ -12,13 +12,13 @@ load_configuration
 log_section "Cleaning Competition Environment"
 
 log_subsection "Stopping Docker Services"
-docker compose -f $DOCKER_DIR/wud.yaml down
-docker compose -f $DYNAMIC_DOCKER_DIR/competitors.yaml down || true
-docker compose -f $DOCKER_DIR/mysql.yaml down
-docker compose -f $DOCKER_DIR/verdaccio.yaml down
-docker compose -f $DOCKER_DIR/gitea-runner.yaml down
-docker compose -f $DOCKER_DIR/gitea.yaml down 
-docker compose -f $DOCKER_DIR/traefik.yaml down
+docker compose -f $DOCKER_DIR/wud.yaml down -v
+docker compose -f $DYNAMIC_DOCKER_DIR/competitors.yaml down -v || true
+docker compose -f $DOCKER_DIR/mysql.yaml down -v
+docker compose -f $DOCKER_DIR/verdaccio.yaml down -v
+docker compose -f $DOCKER_DIR/gitea-runner.yaml down -v
+docker compose -f $DOCKER_DIR/gitea.yaml down -v 
+docker compose -f $DOCKER_DIR/traefik.yaml down -v
 log_success "Docker services stopped"
 
 # Delete all volumes from the containers

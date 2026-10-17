@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(dirname "$0")/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
 
 # Start a Docker Compose service
 docker_compose() {

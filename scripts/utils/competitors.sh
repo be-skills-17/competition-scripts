@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(dirname "$0")/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
 
 # Initialize competitors configuration files
 initialize_competitors_config() {

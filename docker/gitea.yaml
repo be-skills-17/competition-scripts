@@ -12,7 +12,7 @@ services:
       traefik.http.routers.gitea.entrypoints: ${ENTRYPOINT}
       traefik.http.routers.gitea.tls: ${ENABLE_HTTPS}
     volumes:
-      # - ./data/gitea:/data/gitea
+      - "${DATA_DIR}/gitea:/data"
       - "${CONFIG_DIR}/gitea:/data/gitea/conf"
       # - ./scripts:/scripts
       - /etc/timezone:/etc/timezone:ro

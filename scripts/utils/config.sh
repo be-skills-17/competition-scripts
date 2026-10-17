@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(dirname "$0")/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
 
 # Load and export configuration from main.json
 load_configuration() {

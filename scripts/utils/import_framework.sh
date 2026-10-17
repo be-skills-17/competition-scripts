@@ -20,7 +20,7 @@ cd "$REPO_PATH" || exit
 
 echo "Configuring git repository..."
 # Configure git
-git init 
+git init -b main > $REDIRECT 2>&1
 git config user.name "Init Bot"
 git config user.email "iniot@skill17.com"
 git config http.sslVerify false
@@ -28,7 +28,6 @@ git config http.sslVerify false
 echo "Commiting changes..."
 git add -A
 git commit -m "Initial commit" > $REDIRECT 2>&1
-git branch -M main
 
 echo "Creating the repository on Gitea"
 # Create the repository on Gitea under the "frameworks" organization
