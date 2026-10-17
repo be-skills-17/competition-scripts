@@ -27,7 +27,9 @@ competition.sh_usage() {
   printf "  %s   Start all services\n" "start            "
   printf "  %s   Stop all services, keeping their containers and data\n" "stop             "
   printf "  %s   Recreate some services without touching the rest of the stack\n" "recreate         "
-  printf "  %s   Re-import the frameworks templates into Gitea (after changing allowed_frameworks or the frameworks repository)\n" "import-frameworks"
+  printf "  %s   Re-import the frameworks templates into Gitea and cache their npm dependencies (after changing allowed_frameworks or the frameworks repository)\n" "import-frameworks"
+  printf "  %s   Cache the npm dependencies of every framework template in Verdaccio, then cut npmjs off (also done by init)\n" "prefetch-npm     "
+  printf "  %s   Turn Verdaccio's npm proxy on (any package) or off (cached packages only); without argument, show it\n" "npm-proxy        "
   printf "  %s   Deploy the enabled APIs of config/apis/ for every competitor (after adding, changing or disabling one)\n" "deploy-apis      "
   printf "  %s   Replace a competitor's API database by the initial SQLite database of the API\n" "reset-api        "
   printf "  %s   Back up data, config and .env into backups/ (services are stopped during the copy)\n" "backup           "
@@ -184,7 +186,7 @@ competition.sh_recreate_usage() {
 }
 
 competition.sh_import_frameworks_usage() {
-  printf "competition.sh import-frameworks - Re-import the frameworks templates into Gitea (after changing allowed_frameworks or the frameworks repository)\n\n"
+  printf "competition.sh import-frameworks - Re-import the frameworks templates into Gitea and cache their npm dependencies (after changing allowed_frameworks or the frameworks repository)\n\n"
 
   printf "%s\n" "Usage:"
   printf "  competition.sh import-frameworks\n"
@@ -197,6 +199,60 @@ competition.sh_import_frameworks_usage() {
 
     printf "  %s\n" "--help, -h"
     printf "    Show this help\n"
+    echo
+
+  fi
+}
+
+competition.sh_prefetch_npm_usage() {
+  printf "competition.sh prefetch-npm - Cache the npm dependencies of every framework template in Verdaccio, then cut npmjs off (also done by init)\n\n"
+
+  printf "%s\n" "Usage:"
+  printf "  competition.sh prefetch-npm [OPTIONS]\n"
+  printf "  competition.sh prefetch-npm --help | -h\n"
+  echo
+
+  if [[ -n "$long_usage" ]]; then
+
+    printf "%s\n" "Options:"
+
+    printf "  %s\n" "--keep-online"
+    printf "    Leave the npm proxy on after downloading (any package stays installable)\n"
+    echo
+
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
+    echo
+
+  fi
+}
+
+competition.sh_npm_proxy_usage() {
+  printf "competition.sh npm-proxy - Turn Verdaccio's npm proxy on (any package) or off (cached packages only); without argument, show it\n\n"
+
+  printf "%s\n" "Usage:"
+  printf "  competition.sh npm-proxy [MODE]\n"
+  printf "  competition.sh npm-proxy --help | -h\n"
+  echo
+
+  if [[ -n "$long_usage" ]]; then
+
+    printf "%s\n" "Options:"
+
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
+    echo
+
+    printf "%s\n" "Arguments:"
+
+    printf "  %s\n" "MODE"
+    printf "    on or off\n"
+    printf "    %s\n" "Allowed: on, off"
+    echo
+
+    printf "%s\n" "Examples:"
+    printf "  sudo ./competition.sh npm-proxy\n"
+    printf "  sudo ./competition.sh npm-proxy on\n"
     echo
 
   fi
@@ -1774,6 +1830,41 @@ competition.sh_import_frameworks_command() {
 
   import_all_frameworks
 
+  # New templates may need new npm packages (npmjs is cut off by default)
+  log_section "Prefetching npm packages"
+  prefetch_npm_packages
+
+}
+
+competition.sh_prefetch_npm_command() {
+
+  # Also run by init (post_init of the verdaccio service) and import-frameworks
+  log_section "Prefetching npm packages"
+  if [[ ${args[--keep-online]} ]]; then
+      prefetch_npm_packages --keep-online
+  else
+      prefetch_npm_packages
+  fi
+
+}
+
+competition.sh_npm_proxy_command() {
+
+  mode=${args[mode]}
+
+  if [ -z "$mode" ]; then
+      echo "npm proxy: $(verdaccio_proxy_mode)"
+      exit 0
+  fi
+
+  write_verdaccio_config "$mode"
+  restart_verdaccio
+  if [ "$mode" = on ]; then
+      log_success "npm proxy on: competitors can install any npm package (fetched from npmjs and cached)"
+  else
+      log_success "npm proxy off: only the packages cached in data/verdaccio can be installed"
+  fi
+
 }
 
 competition.sh_deploy_apis_command() {
@@ -1996,6 +2087,20 @@ parse_requirements() {
       action="import-frameworks"
       shift
       competition.sh_import_frameworks_parse_requirements "$@"
+      shift $#
+      ;;
+
+    prefetch-npm)
+      action="prefetch-npm"
+      shift
+      competition.sh_prefetch_npm_parse_requirements "$@"
+      shift $#
+      ;;
+
+    npm-proxy)
+      action="npm-proxy"
+      shift
+      competition.sh_npm_proxy_parse_requirements "$@"
       shift $#
       ;;
 
@@ -2680,6 +2785,206 @@ competition.sh_import_frameworks_parse_requirements() {
 
 }
 
+competition.sh_prefetch_npm_parse_requirements() {
+  local key
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+      --help | -h)
+        long_usage=yes
+        competition.sh_prefetch_npm_usage
+        exit
+        ;;
+
+      *)
+        break
+        ;;
+
+    esac
+  done
+
+  missing_deps=
+
+  if ! command -v docker >/dev/null 2>&1; then
+    printf "missing dependency: docker\n" >&2
+    missing_deps=1
+  else
+    deps['docker']="$(command -v docker | head -n1)"
+  fi
+
+  if ! command -v jq >/dev/null 2>&1; then
+    printf "missing dependency: jq\n" >&2
+    missing_deps=1
+  else
+    deps['jq']="$(command -v jq | head -n1)"
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    printf "missing dependency: curl\n" >&2
+    missing_deps=1
+  else
+    deps['curl']="$(command -v curl | head -n1)"
+  fi
+
+  if [[ -n $missing_deps ]]; then
+    exit 1
+  fi
+
+  action="prefetch-npm"
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+
+      --keep-online)
+
+        args['--keep-online']=1
+        shift
+        ;;
+
+      --)
+        shift
+        while [[ $# -gt 0 ]]; do
+          key="$1"
+
+          printf "invalid argument: %s\n" "$key" >&2
+          exit 1
+
+        done
+        break
+        ;;
+
+      -?*)
+        printf "invalid option: %s\n" "$key" >&2
+        exit 1
+        ;;
+
+      *)
+
+        printf "invalid argument: %s\n" "$key" >&2
+        exit 1
+
+        ;;
+
+    esac
+  done
+
+  filter_error=$(filter_root)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+  filter_error=$(filter_initialized)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+}
+
+competition.sh_npm_proxy_parse_requirements() {
+  local key
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+      --help | -h)
+        long_usage=yes
+        competition.sh_npm_proxy_usage
+        exit
+        ;;
+
+      *)
+        break
+        ;;
+
+    esac
+  done
+
+  missing_deps=
+
+  if ! command -v docker >/dev/null 2>&1; then
+    printf "missing dependency: docker\n" >&2
+    missing_deps=1
+  else
+    deps['docker']="$(command -v docker | head -n1)"
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    printf "missing dependency: curl\n" >&2
+    missing_deps=1
+  else
+    deps['curl']="$(command -v curl | head -n1)"
+  fi
+
+  if [[ -n $missing_deps ]]; then
+    exit 1
+  fi
+
+  action="npm-proxy"
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+
+      --)
+        shift
+        while [[ $# -gt 0 ]]; do
+          key="$1"
+
+          if [[ -z ${args['mode']+x} ]]; then
+            args['mode']=$1
+            shift
+          else
+            printf "invalid argument: %s\n" "$key" >&2
+            exit 1
+          fi
+
+        done
+        break
+        ;;
+
+      -?*)
+        printf "invalid option: %s\n" "$key" >&2
+        exit 1
+        ;;
+
+      *)
+
+        if [[ -z ${args['mode']+x} ]]; then
+          args['mode']=$1
+          shift
+        else
+          printf "invalid argument: %s\n" "$key" >&2
+          exit 1
+        fi
+
+        ;;
+
+    esac
+  done
+
+  if [[ -n ${args['mode']:-} ]] && [[ ! ${args['mode']:-} =~ ^(on|off)$ ]]; then
+    printf "%s\n" "mode must be one of: on, off" >&2
+    exit 1
+  fi
+
+  filter_error=$(filter_root)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+  filter_error=$(filter_initialized)
+  if [[ -n $filter_error ]]; then
+    echo "$filter_error" >&2
+    exit 1
+  fi
+
+}
+
 competition.sh_deploy_apis_parse_requirements() {
   local key
 
@@ -3199,6 +3504,8 @@ run() {
     "stop") competition.sh_stop_command ;;
     "recreate") competition.sh_recreate_command ;;
     "import-frameworks") competition.sh_import_frameworks_command ;;
+    "prefetch-npm") competition.sh_prefetch_npm_command ;;
+    "npm-proxy") competition.sh_npm_proxy_command ;;
     "deploy-apis") competition.sh_deploy_apis_command ;;
     "reset-api") competition.sh_reset_api_command ;;
     "backup") competition.sh_backup_command ;;

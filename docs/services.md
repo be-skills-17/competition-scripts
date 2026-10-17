@@ -8,7 +8,7 @@ services/
   20-gitea/        compose.yaml  service.sh   # wait_ready, post_init (admin, tokens, orgs, frameworks)
   30-runners/      compose.yaml
   40-mysql/        compose.yaml  service.sh   # pre_init (competitors.sql)
-  50-verdaccio/    compose.yaml  service.sh   # pre_init (storage permissions)
+  50-verdaccio/    compose.yaml  service.sh   # pre_init (permissions, config), wait_ready, post_init (prefetch npm)
   60-wud/          compose.yaml
   70-competitors/                service.sh   # compose_file (generated), pre_init (users, images), clean (images)
   75-apis/                       service.sh   # compose_file (generated), pre_init (SQLite copies), clean

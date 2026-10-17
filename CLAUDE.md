@@ -48,6 +48,10 @@ tests/                    run.sh, *.bats, test_helper.bash, fixtures/main.json, 
 - **APIs**: one `php:<v>-apache` container per enabled API and competitor (`<username>_<name>`), code mounted
   read-only, per-competitor SQLite copy in `data/apis/<name>/<username>/` (owned by uid 33), entry point
   `services/75-apis/start-apache.sh` (document root + FallbackResource), CORS via Traefik middleware labels.
+- **npm**: `init` (verdaccio post_init) and `import-frameworks` run `npm install` on every template's
+  package.json + lockfile (fetched from Gitea) through Verdaccio for each platform, then cut npmjs off (default
+  state). No npm list in main.json on purpose: the templates are the source. `npm-proxy on|off` toggles it; on
+  failure the proxy is left on.
 - **Backups**: `tar --numeric-owner` of data/, config/, dynamic/docker, .env, lock; backups/ is 700, archives 600.
   `backup` stops the stack for a consistent MySQL copy; `clean` backs up after `down -v`; `restore` = check,
   clean (which backs up), extract, `up` each service + wait_ready.
@@ -69,6 +73,11 @@ tests/                    run.sh, *.bats, test_helper.bash, fixtures/main.json, 
   another delimiter (`PYEOF`, `SHEOF`).
 - In `bashly.yml`, several entries share names (`backup` is a command AND restore's argument): anchor edits on
   unique context.
+- Verdaccio 6 queries every declared uplink even for packages without `proxy:`: offline mode must remove the
+  `uplinks:` section (see services/50-verdaccio/service.sh). `config/verdaccio/config.yaml` is generated from
+  `config.template.yaml`.
+- npm silently skips optional dependencies it cannot fetch (platform binaries): an install that succeeds
+  proves nothing, compare the installed package lists instead (prefetch-npm does).
 - `mysql:8.4.6` is pinned on purpose (data directory version); all images are pinned, bump tags deliberately.
 
 ## Testing without sudo

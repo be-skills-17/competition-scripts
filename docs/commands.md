@@ -27,6 +27,14 @@ sudo ./competition.sh recreate comp01_module-a
 # Re-import the frameworks templates (after changing allowed_frameworks or the frameworks repository)
 sudo ./competition.sh import-frameworks
 
+# Cache the npm dependencies of the framework templates in Verdaccio, then cut npmjs off (init does it too)
+sudo ./competition.sh prefetch-npm
+sudo ./competition.sh npm-proxy on      # or off; without argument: show the mode
+
+# Deploy the provided PHP APIs of config/apis/, reset a competitor's API database
+sudo ./competition.sh deploy-apis
+sudo ./competition.sh reset-api products-api comp01
+
 # Back up the whole environment into backups/
 sudo ./competition.sh backup
 
@@ -44,7 +52,7 @@ sudo ./competition.sh -v init
 sudo ./competition.sh --verbose start
 ```
 
-Details: [recreating a service](recreate.md), [frameworks](frameworks.md), [APIs](apis.md),
+Details: [recreating a service](recreate.md), [frameworks](frameworks.md), [npm](npm.md), [APIs](apis.md),
 [backup and restore](backup-restore.md).
 
 **Help:** `./competition.sh --help` lists every command, `./competition.sh <command> --help` shows its arguments

@@ -9,3 +9,5 @@ config/traefik/certs
 # APIs are dropped in config/apis/ and not versioned, except the template
 config/apis/*
 !config/apis/template/
+# Generated from config/verdaccio/config.template.yaml (with or without the npm proxy)
+config/verdaccio/config.yaml

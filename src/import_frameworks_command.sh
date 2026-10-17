@@ -12,3 +12,7 @@ wait_for_gitea
 load_personal_access_token "$BASE_DIR/.env" || exit 1
 
 import_all_frameworks
+
+# New templates may need new npm packages (npmjs is cut off by default)
+log_section "Prefetching npm packages"
+prefetch_npm_packages

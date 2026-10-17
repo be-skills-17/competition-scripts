@@ -32,6 +32,7 @@ sudo ./competition.sh init           # create and start everything
 | [Commands](docs/commands.md) | Every command of `competition.sh`, verbose mode, help |
 | [Recreating a service](docs/recreate.md) | `recreate`, and what each service keeps or loses |
 | [Frameworks](docs/frameworks.md) | Re-importing the framework templates into Gitea |
+| [npm packages](docs/npm.md) | npmjs cut off by default, templates' dependencies cached (`prefetch-npm`, `npm-proxy`) |
 | [Provided APIs](docs/apis.md) | Native PHP APIs deployed for every competitor (`deploy-apis`, `reset-api`) |
 | [Backup and restore](docs/backup-restore.md) | `backup`, `restore`, and the backup made by `clean` |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems |

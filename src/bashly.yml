@@ -50,9 +50,29 @@ commands:
   - sudo ./competition.sh recreate runners
 
 - name: import-frameworks
-  help: Re-import the frameworks templates into Gitea (after changing allowed_frameworks or the frameworks repository)
+  help: Re-import the frameworks templates into Gitea and cache their npm dependencies (after changing allowed_frameworks or the frameworks repository)
   filters: [root, initialized, valid_config]
   dependencies: [docker, jq, curl, git]
+
+- name: prefetch-npm
+  help: Cache the npm dependencies of every framework template in Verdaccio, then cut npmjs off (also done by init)
+  filters: [root, initialized]
+  dependencies: [docker, jq, curl]
+  flags:
+  - long: --keep-online
+    help: Leave the npm proxy on after downloading (any package stays installable)
+
+- name: npm-proxy
+  help: Turn Verdaccio's npm proxy on (any package) or off (cached packages only); without argument, show it
+  filters: [root, initialized]
+  dependencies: [docker, curl]
+  args:
+  - name: mode
+    allowed: ["on", "off"]
+    help: on or off
+  examples:
+  - sudo ./competition.sh npm-proxy
+  - sudo ./competition.sh npm-proxy on
 
 - name: deploy-apis
   help: Deploy the enabled APIs of config/apis/ for every competitor (after adding, changing or disabling one)
