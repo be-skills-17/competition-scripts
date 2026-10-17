@@ -5,3 +5,7 @@ data
 dynamic
 competition.lock
 config/traefik/certs
+config/traefik/certs/ca-cert.crt
+config/traefik/certs/ca-cert.key
+config/traefik/certs/fullchain.pem
+config/traefik/certs/privkey.pem

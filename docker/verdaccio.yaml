@@ -5,10 +5,12 @@ services:
     labels:
       traefik.enable: "true"
       traefik.http.routers.verdaccio.rule: Host(`npm.${DOMAIN}`)
+      traefik.http.routers.verdaccio.entrypoints: websecure
+      traefik.http.routers.verdaccio.tls: "true"
       traefik.http.services.verdaccio.loadbalancer.server.port: 4873
-      traefik.http.routers.verdaccio.tls: ${ENABLE_HTTPS}
     environment:
       - VERDACCIO_PORT=4873
+      - VERDACCIO_PUBLIC_URL=https://npm.${DOMAIN}
     ports:
       - "4873:4873"
     volumes:
@@ -17,6 +19,7 @@ services:
     restart: always
     networks:
       - gitea
+
 networks:
   gitea:
     external: true

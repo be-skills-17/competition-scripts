@@ -29,20 +29,25 @@ setup_docker_registry_credentials() {
 # Clone and process frameworks repository
 import_all_frameworks() {
     log_section "Importing Frameworks"
-    log_info "Cloning frameworks repository..."
-    git clone "$FRAMEWORKS_REPO" "$TEMP_DIR"
 
-    cd "$TEMP_DIR" || exit
-    rm -rf .git
+    if [ -z "$TEMP_DIR" ] || [ "$TEMP_DIR" = "/" ]; then
+        log_error "TEMP_DIR is empty, aborting"; exit 1
+    fi
+
+    log_info "Cloning frameworks repository..."
+    rm -rf "$TEMP_DIR"
+    git clone "$FRAMEWORKS_REPO" "$TEMP_DIR" || { log_error "Clone failed"; exit 1; }
+
+    cd "$TEMP_DIR" || exit 1
+    rm -rf "$TEMP_DIR/.git"
 
     for dir in $(find . -maxdepth 1 -type d -not -path '*/.*' -not -path '.'); do
         framework_name=$(basename "$dir")
         framework_path=$(realpath "$dir")
-        
         log_subsection "Framework: $framework_name"
         import_framework "$framework_path" "$framework_name"
     done
-    
+
     log_success "All frameworks imported"
     cd - > /dev/null
 }
