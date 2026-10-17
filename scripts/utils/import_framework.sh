@@ -16,7 +16,42 @@ ORG_NAME='frameworks'
 
 
 
+REMOTE_URL="https://$USERNAME:$PASSWORD@$GITEA_URL/$ORG_NAME/$REPO_NAME.git"
+
 cd "$REPO_PATH" || exit
+
+repo_status=$(curl -s -k -o /dev/null -w '%{http_code}' -H "Authorization: token $GITEA_TOKEN" "https://$GITEA_URL/api/v1/repos/$ORG_NAME/$REPO_NAME")
+
+if [ "$repo_status" = "200" ]; then
+    # The template already exists: commit the new content on top of its history instead of recreating it,
+    # so repositories generated from it keep their link and nothing is force-pushed.
+    echo "Repository $REPO_NAME already exists, updating it..."
+    rm -rf .git
+    tmp_clone=$(mktemp -d)
+    if ! git -c http.sslVerify=false clone --quiet --no-checkout "$REMOTE_URL" "$tmp_clone" > $REDIRECT 2>&1; then
+        rm -rf "$tmp_clone"
+        echo "Failed to clone $ORG_NAME/$REPO_NAME from Gitea"
+        exit 1
+    fi
+    mv "$tmp_clone/.git" .git
+    rm -rf "$tmp_clone"
+    git config user.name "Init Bot"
+    git config user.email "iniot@skill17.com"
+    git config http.sslVerify false
+
+    git add -A
+    if git diff --cached --quiet; then
+        echo "Repository $REPO_NAME is already up to date."
+        exit 0
+    fi
+    git commit -m "Update framework" > $REDIRECT 2>&1
+    git push origin HEAD > $REDIRECT 2>&1 || {
+        echo "Failed to push $REPO_NAME to Gitea"
+        exit 1
+    }
+    echo "Repository $REPO_NAME updated in the $ORG_NAME organization !"
+    exit 0
+fi
 
 echo "Configuring git repository..."
 # Configure git
@@ -49,7 +84,7 @@ fi
 
 echo "Pushing the repository to Gitea..."
 git remote remove gitea 2>/dev/null
-git remote add gitea "https://$USERNAME:$PASSWORD@$GITEA_URL/$ORG_NAME/$REPO_NAME.git"
+git remote add gitea "$REMOTE_URL"
 git push -u gitea main --force > $REDIRECT 2>&1
 
 echo "Repository $REPO_NAME pushed to the $ORG_NAME organization !"

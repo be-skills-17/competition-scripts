@@ -38,6 +38,29 @@ get_personal_access_token() {
     export GITEA_TOKEN=$($SCRIPTS_DIR/create_pat.sh "$GITEA_URL" "$USERNAME" "$PASSWORD")
 }
 
+# Returns 0 if $GITEA_TOKEN is accepted by Gitea
+gitea_token_is_valid() {
+    [ -n "$GITEA_TOKEN" ] || return 1
+    [ "$(curl -s -k -o /dev/null -w '%{http_code}' -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/user")" = "200" ]
+}
+
+# Use the token stored in .env by init. Installations made before it was stored get a new one,
+# under a unique name (Gitea refuses duplicate names), saved to .env so this only happens once.
+load_personal_access_token() {
+    local env_file=$1
+    gitea_token_is_valid && return 0
+
+    log_warning "No valid GITEA_TOKEN in $env_file, creating a new one"
+    export GITEA_TOKEN=$($SCRIPTS_DIR/create_pat.sh "$GITEA_URL" "$USERNAME" "$PASSWORD" "competition-scripts-$(date +%Y%m%d%H%M%S)")
+    if ! gitea_token_is_valid; then
+        log_error "Could not get a Gitea access token: $GITEA_TOKEN"
+        return 1
+    fi
+    sed -i '/^GITEA_TOKEN=/d' "$env_file"
+    echo "GITEA_TOKEN=\"$GITEA_TOKEN\"" >> "$env_file"
+    log_success "Token saved to $env_file"
+}
+
 # Create user-level action secret
 create_user_secret() {
     local user=$1

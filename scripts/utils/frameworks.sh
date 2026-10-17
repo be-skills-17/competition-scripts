@@ -45,7 +45,7 @@ import_all_frameworks() {
     cd "$TEMP_DIR" || exit 1
     rm -rf "$TEMP_DIR/.git"
 
-    local imported=()
+    local imported=() failed=()
     for dir in */; do
         [ -d "$dir" ] || continue
         framework_name=$(basename "$dir")
@@ -58,15 +58,21 @@ import_all_frameworks() {
 
         framework_path=$(realpath "$dir")
         log_subsection "Framework: $framework_name"
-        import_framework "$framework_path" "$framework_name"
-        imported+=("$framework_name")
+        if import_framework "$framework_path" "$framework_name"; then
+            imported+=("$framework_name")
+        else
+            log_error "Import of $framework_name failed"
+            failed+=("$framework_name")
+        fi
     done
 
     # Warn about allowed frameworks that don't exist in the repository
     for allowed in $ALLOWED_FRAMEWORKS; do
-        [[ " ${imported[*]} " == *" $allowed "* ]] || log_warning "Allowed framework '$allowed' not found in repository"
+        [[ " ${imported[*]} ${failed[*]} " == *" $allowed "* ]] || log_warning "Allowed framework '$allowed' not found in repository"
     done
 
     log_success "Imported ${#imported[@]} framework(s): ${imported[*]}"
+    [ ${#failed[@]} -eq 0 ] || log_error "Failed: ${failed[*]}"
     cd - > /dev/null
+    [ ${#failed[@]} -eq 0 ]
 }

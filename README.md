@@ -61,6 +61,9 @@ sudo ./competition.sh recreate gitea
 sudo ./competition.sh recreate verdaccio wud
 sudo ./competition.sh recreate comp01_module-a
 
+# Re-import the frameworks templates (after changing allowed_frameworks or the frameworks repository)
+sudo ./competition.sh import-frameworks
+
 # Back up the whole environment into backups/
 sudo ./competition.sh backup
 
@@ -71,6 +74,17 @@ sudo ./competition.sh restore latest
 sudo ./competition.sh clean
 sudo ./competition.sh clean --no-backup
 ```
+
+### Re-importing frameworks
+
+`import-frameworks` clones `frameworks_repo` again and imports the frameworks listed in `allowed_frameworks`
+(both read from `config/main.json`), without touching anything else:
+
+- A template that already exists in the `frameworks` organization gets a new "Update framework" commit (nothing is
+  done if its content did not change). It is never deleted or force-pushed, so repositories competitors created from
+  it are not affected and keep their "generated from" link.
+- A framework newly added to `allowed_frameworks` is created as a new template.
+- A framework removed from `allowed_frameworks` stays in Gitea; delete it from the web UI if needed.
 
 ### Backup and restore
 

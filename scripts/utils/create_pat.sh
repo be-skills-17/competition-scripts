@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <GITEA_URL> <USERNAME> <PASSWORD>"
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    echo "Usage: $0 <GITEA_URL> <USERNAME> <PASSWORD> [TOKEN_NAME]"
     exit 1
 fi
 
@@ -10,7 +10,7 @@ fi
 GITEA_URL="$1"
 USERNAME="$2"
 PASSWORD="$3"
-TOKEN_NAME="CreateOrganizationScript"
+TOKEN_NAME="${4:-CreateOrganizationScript}"
 
 # Create a new personal access token
 response=$(curl -s -k -X POST -H "Content-Type: application/json" \
@@ -26,7 +26,7 @@ response=$(curl -s -k -X POST -H "Content-Type: application/json" \
 new_token=$(echo "$response" | grep -o '"sha1":"[^"]*"' | sed 's/"sha1":"//;s/"//g')
 
 # Check if the token was successfully created
-if [ "$new_token" == "null" ]; then
+if [ -z "$new_token" ] || [ "$new_token" == "null" ]; then
     echo "Failed to create token. Response: $response"
     exit 1
 fi

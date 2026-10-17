@@ -22,7 +22,7 @@ fi
 
 # Check if the correct number of arguments are provided
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <ACTION [backup,clean,init,recreate,restore,setup,start,stop]>"
+    echo "Usage: $0 <ACTION [backup,clean,import-frameworks,init,recreate,restore,setup,start,stop]>"
     echo "       $0 recreate <service|group> [<service|group> ...]"
     echo "       $0 clean [--no-backup]"
     echo "       $0 restore <backup file | latest>"
@@ -84,6 +84,13 @@ case $ACTION in
         fi
         bash "$ACTIONS_DIR/backup.sh"
         ;;
+    import-frameworks)
+        if ! is_already_initialized; then
+            echo "Competition is not initialized. Please run the 'init' action first."
+            exit 1
+        fi
+        bash "$ACTIONS_DIR/import-frameworks.sh"
+        ;;
     restore)
         bash "$ACTIONS_DIR/restore.sh" "$@"
         ;;
@@ -120,7 +127,7 @@ case $ACTION in
         ;;
     *)
         echo "Invalid action: $ACTION"
-        echo "Valid actions are: backup, clean, init, recreate, restore, setup, start, stop"
+        echo "Valid actions are: backup, clean, import-frameworks, init, recreate, restore, setup, start, stop"
         exit 1
         ;;
 esac

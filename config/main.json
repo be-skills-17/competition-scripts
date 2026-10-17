@@ -18,6 +18,6 @@
   ],
   "frameworks": {
     "frameworks_repo": "https://github.com/be-skills-17/frameworks-templates.git",
-    "allowed_frameworks": ["laravel", "react", "vanilla", "php", "vuejs"]
+    "allowed_frameworks": ["laravel", "react", "vanilla", "php", "vuejs", "expressjs"]
   }
 }
