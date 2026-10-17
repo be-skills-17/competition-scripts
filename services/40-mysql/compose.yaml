@@ -4,6 +4,7 @@ services:
     restart: always
     networks:
       - default
+      - competitors-db
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
@@ -33,3 +34,9 @@ services:
       traefik.http.services.pma.loadbalancer.server.port: 80
       traefik.http.routers.pma.tls: true
       traefik.http.routers.pma.entrypoints: websecure
+
+# Competitor containers reach MySQL as competitor_db on this network (services/70-competitors/lib/competitors.sh),
+# without being on the default network of phpMyAdmin
+networks:
+  competitors-db:
+    name: competitors-db

@@ -15,10 +15,17 @@ EOF
 # WUD deploys every new x.y.z tag. No "wud.watch.digest": each CI build of the templates pushes a new tag
 # (1.0.<unix time>), and watching digests made WUD ask Gitea for the manifest of the running image every check
 # (404 for the initial image, whose first digest is nginx's on Docker Hub).
+# The module's database and URL are passed as environment variables when the container starts (never at build:
+# the CI only knows the competitor, and build args stay readable in the image): every framework template reads
+# DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD and APP_URL. MySQL is reached on the competitors-db
+# network (services/40-mysql/compose.yaml). "$" is doubled: compose would interpolate it.
 add_competitor_module_to_compose() {
     local user=$1
     local module=$2
     local subdomain=$3
+    local password=${4//\$/\$\$}
+    local scheme=http
+    [ "$ENABLE_HTTPS" = true ] && scheme=https
 
     cat <<EOF >> "$(service_compose_file competitors)"
   ${user}_${module}:
@@ -27,6 +34,14 @@ add_competitor_module_to_compose() {
     restart: always
     networks:
       - gitea
+      - competitors-db
+    environment:
+      DB_HOST: competitor_db
+      DB_PORT: "3306"
+      DB_DATABASE: "${user}_${module}"
+      DB_USERNAME: "${user}"
+      DB_PASSWORD: "${password}"
+      APP_URL: "${scheme}://${subdomain}-${module}.$DOMAIN"
     labels:
       - "wud.watch=true"
       - 'wud.tag.include=^\d+\.\d+\.\d+\$\$'
@@ -56,10 +71,11 @@ process_competitor_module() {
     local user=$1
     local module=$2
     local subdomain=$3
+    local password=$4
 
     log_debug "Processing module: $module for $user"
 
-    add_competitor_module_to_compose "$user" "$module" "$subdomain"
+    add_competitor_module_to_compose "$user" "$module" "$subdomain" "$password"
     push_initial_module_image "$user" "$module"
 }
 
@@ -77,7 +93,7 @@ process_competitor() {
     create_user_secrets "$username" "$password"
 
     for module in $MODULES; do
-        process_competitor_module "$username" "$module" "$subdomain"
+        process_competitor_module "$username" "$module" "$subdomain" "$password"
     done
 }
 
@@ -99,6 +115,8 @@ finalize_docker_compose_config() {
 
 networks:
   gitea:
+    external: true
+  competitors-db:
     external: true
 EOF
 }

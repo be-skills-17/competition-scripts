@@ -70,3 +70,29 @@ setup() {
     [[ "$output" != *"wud.watch.digest"* ]]
     [[ "$output" != *"wud.registry"* ]]
 }
+
+@test "each module gets its database and URL as environment variables, on the competitors-db network" {
+    push_initial_module_image() { :; }
+    initialize_competitors_config > /dev/null
+    process_competitor_module comp01 module-a alpha 'pa$s word'
+    finalize_docker_compose_config
+
+    run cat "$DYNAMIC_DIR/competitors/compose.yaml"
+    [[ "$output" == *"      - competitors-db"* ]]
+    [[ "$output" == *"DB_HOST: competitor_db"* ]]
+    [[ "$output" == *'DB_DATABASE: "comp01_module-a"'* ]]
+    [[ "$output" == *'DB_USERNAME: "comp01"'* ]]
+    [[ "$output" == *'DB_PASSWORD: "pa$$s word"'* ]]
+    [[ "$output" == *'APP_URL: "https://alpha-module-a.competition.test"'* ]]
+    [[ "$output" == *$'  competitors-db:\n    external: true'* ]]
+}
+
+@test "APP_URL uses http when HTTPS is disabled" {
+    push_initial_module_image() { :; }
+    ENABLE_HTTPS=false
+    initialize_competitors_config > /dev/null
+    process_competitor_module comp01 module-a alpha pass01
+
+    run cat "$DYNAMIC_DIR/competitors/compose.yaml"
+    [[ "$output" == *'APP_URL: "http://alpha-module-a.competition.test"'* ]]
+}

@@ -18,6 +18,10 @@ credentials, website URLs, database names and Git repository URLs, ready to copy
   - Per-competitor databases: `comp01_module_a`, `comp01_module_b`, etc.
   - Automatic user creation with appropriate permissions
   - Users can access only their own databases
+  - Each module's container receives its database and URL as environment variables when it starts: `DB_HOST`
+    (`competitor_db`, on the `competitors-db` network), `DB_PORT`, `DB_DATABASE` (`comp01_module-a`),
+    `DB_USERNAME`, `DB_PASSWORD` and `APP_URL` (`https://<subdomain>-<module>.<domain>`). The framework templates
+    read them, before their `.env` values. They are written to the competitors' compose file by `init`.
 
 ## Competitor Workflow
 
