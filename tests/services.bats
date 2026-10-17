@@ -113,9 +113,9 @@ HOOKS
 
 @test "web pages load nothing from the internet (the competition machines are offline)" {
     # Links (<a href>) are fine; stylesheets, scripts, images, fonts and frames must be served locally
-    run grep -rnEi --include=*.html --include=*.php --include=*.css --include=*.js \
-        "<(link|script|img|iframe|source)[^>]*(src|href)=[\"']?(https?:)?//|url\([\"']?(https?:)?//|@import [\"']?(https?:)?//" \
-        "$REPO_DIR/services" "$REPO_DIR/config/apis/template"
+    run sh -c 'find "$@" -type f \( -name "*.html" -o -name "*.php" -o -name "*.css" -o -name "*.js" \) \
+        -exec grep -nEi "<(link|script|img|iframe|source)[^>]*(src|href)=[\"'"'"']?(https?:)?//|url\([\"'"'"']?(https?:)?//|@import [\"'"'"']?(https?:)?//" {} +' \
+        sh "$REPO_DIR/services" "$REPO_DIR/config/apis/template"
     echo "$output"
     [ "$status" -eq 1 ]
 }
