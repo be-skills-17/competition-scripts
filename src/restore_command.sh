@@ -28,20 +28,10 @@ log_section "Extracting Backup"
 run_with_spinner "Extracting $(basename "$archive")..." \
     tar --numeric-owner -xzpf "$archive" -C "$BASE_DIR" || exit 1
 
-# .env stores absolute paths; fix them if the project was moved since the backup
-old_base=$(sed -n 's/^BASE_DIR="\(.*\)"$/\1/p' "$BASE_DIR/.env")
-if [ -n "$old_base" ] && [ "$old_base" != "$BASE_DIR" ]; then
-    log_info "Updating paths in .env: $old_base -> $BASE_DIR"
-    sed -i "s#$old_base#$BASE_DIR#g" "$BASE_DIR/.env"
-fi
 touch "$LOCK_FILE"
 log_success "Files restored"
 
-set -a
-# shellcheck disable=SC1091
-source "$BASE_DIR/.env"
-set +a
-export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
+load_env_file
 
 log_section "Starting Services"
 # Competitor images are pulled from Gitea's registry: each service waits for the previous ones

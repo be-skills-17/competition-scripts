@@ -97,7 +97,8 @@ container registry, both MySQL databases, Verdaccio packages, runner registratio
 - `clean` backs up after the services are stopped and before deleting anything. If the backup fails, nothing is
   deleted. Use `--no-backup` to skip it.
 - `restore` checks the archive, runs `clean` (so the current state is backed up too), extracts the archive and
-  starts every service. Paths in `.env` are updated if the project was moved to another directory.
+  starts every service. The backup can be restored in another directory or on another machine:
+  paths are never stored, they are derived from the location of `competition.sh`.
 
 Backups are never deleted automatically; remove old ones from `backups/` yourself.
 

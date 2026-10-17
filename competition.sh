@@ -548,7 +548,8 @@ initialize_configuration() {
     log_success "Configuration initialized"
 }
 
-# Export all environment variables to .env file
+# Save the values computed by init to .env. Paths are not saved: initialize.sh derives them from the
+# script location, so the project can be moved or restored elsewhere.
 export_environment_variables() {
     local output_file=${1:-$BASE_DIR/.env}
 
@@ -568,13 +569,38 @@ REGISTRY_PORT="$REGISTRY_PORT"
 GITEA_URL="$GITEA_URL"
 GITEA_TOKEN="$GITEA_TOKEN"
 REGISTRATION_TOKEN="$REGISTRATION_TOKEN"
-BASE_DIR="$BASE_DIR"
-CONFIG_DIR="$CONFIG_DIR"
-SERVICES_DIR="$SERVICES_DIR"
-DATA_DIR="$DATA_DIR"
-DYNAMIC_DOCKER_DIR="$DYNAMIC_DOCKER_DIR"
-DYNAMIC_FRAMEWORKS_DIR="$DYNAMIC_FRAMEWORKS_DIR"
 EOF
+}
+
+# Paths derived from $BASE_DIR (the script location)
+set_paths() {
+    export BASE_DIR
+    export CONFIG_DIR=$BASE_DIR/config
+    export SERVICES_DIR=$BASE_DIR/services
+    export DATA_DIR=$BASE_DIR/data
+    export BACKUP_DIR=$BASE_DIR/backups
+    export LOCK_FILE=$BASE_DIR/competition.lock
+    # Generated files
+    export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
+    export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
+}
+
+# Load .env, then set the paths again: .env files written by older versions (and old backups) still
+# contain absolute paths, which must not override the current location
+load_env_file() {
+    local base_dir=$BASE_DIR
+    if [ -f "$base_dir/.env" ]; then
+        set -a
+        # shellcheck disable=SC1091
+        source "$base_dir/.env"
+        set +a
+    fi
+    BASE_DIR=$base_dir
+    set_paths
+
+    if [ -n "$DOMAIN" ]; then
+        export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
+    fi
 }
 
 # Bashly filters: printing a message stops the command with that error
@@ -1453,20 +1479,10 @@ competition.sh_restore_command() {
   run_with_spinner "Extracting $(basename "$archive")..." \
       tar --numeric-owner -xzpf "$archive" -C "$BASE_DIR" || exit 1
 
-  # .env stores absolute paths; fix them if the project was moved since the backup
-  old_base=$(sed -n 's/^BASE_DIR="\(.*\)"$/\1/p' "$BASE_DIR/.env")
-  if [ -n "$old_base" ] && [ "$old_base" != "$BASE_DIR" ]; then
-      log_info "Updating paths in .env: $old_base -> $BASE_DIR"
-      sed -i "s#$old_base#$BASE_DIR#g" "$BASE_DIR/.env"
-  fi
   touch "$LOCK_FILE"
   log_success "Files restored"
 
-  set -a
-  # shellcheck disable=SC1091
-  source "$BASE_DIR/.env"
-  set +a
-  export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
+  load_env_file
 
   log_section "Starting Services"
   # Competitor images are pulled from Gitea's registry: each service waits for the previous ones
@@ -2414,32 +2430,14 @@ initialize() {
 
   # Runs before argument parsing, for every command (including --help)
 
-  # .env holds the values computed by init (domain, credentials, tokens...)
+  # Everything is relative to the script location, never to the current directory
   BASE_DIR=$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" && pwd)
-  if [ -f "$BASE_DIR/.env" ]; then
-      set -a
-      # shellcheck disable=SC1091
-      source "$BASE_DIR/.env"
-      set +a
-  fi
 
-  # Paths are always derived from the script location, never from .env or the current directory
-  export BASE_DIR
-  export CONFIG_DIR=$BASE_DIR/config
-  export SERVICES_DIR=$BASE_DIR/services
-  export DATA_DIR=$BASE_DIR/data
-  export BACKUP_DIR=$BASE_DIR/backups
-  export LOCK_FILE=$BASE_DIR/competition.lock
-  # Generated files
-  export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
-  export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
+  # Values computed by init (domain, credentials, tokens...) and the paths
+  load_env_file
 
   export COMPOSE_PROJECT_NAME="competition_scripts"
   export COMPOSE_IGNORE_ORPHANS=true
-
-  if [ -n "$DOMAIN" ]; then
-      export GITEA_URL=${GITEA_URL:-"$GITEA_PROTOCOL://git.$DOMAIN"}
-  fi
 
   export VERBOSE=false
   export REDIRECT=/dev/null
