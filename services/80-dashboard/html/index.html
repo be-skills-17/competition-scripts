@@ -222,6 +222,20 @@ for (const [name, desc, sub, path, icon] of SERVICES) {
   services.append(a);
 }
 
+// Documentation des API fournies (Swagger, servie par ce dashboard) : seulement si une API est activée
+if ((CONFIG.apis || []).length) {
+  const a = el('a', 'card');
+  a.href = 'api-docs.html';
+  const img = el('img');
+  img.src = 'swagger/logo.svg';
+  img.alt = '';
+  const txt = el('div');
+  txt.append(el('div', 't', 'Documentation des API'), el('div', 'd', 'Swagger des API fournies'), el('div', 'h', location.host + '/api-docs.html'));
+  a.append(img, txt);
+  services.append(a);
+  document.getElementById('scount').textContent = SERVICES.length + 1;
+}
+
 // ---------- Serveur (Glances) ----------
 const GB = 1024 ** 3;
 const fmtGB = (b) => (b / GB).toFixed(1).replace('.', ',') + ' Go';

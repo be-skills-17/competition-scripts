@@ -1,0 +1,11 @@
+/* API documentation page: a portal-style bar above Swagger UI (portal.css is not loaded, see api-docs.php) */
+body{margin:0;background:#fff}
+.docs-bar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:#1e3048;color:#fff;padding:14px 24px;font-family:Montserrat,system-ui,sans-serif}
+.docs-bar h1{margin:0;font-size:18px;font-weight:800}
+.docs-bar .back{color:#e6ae4f;font-weight:700;text-decoration:none}
+.docs-bar .back:hover{text-decoration:underline}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:700 13px Montserrat,system-ui,sans-serif;border:0;border-radius:999px;padding:6px 14px;cursor:pointer;background:rgba(255,255,255,.12);color:#fff}
+.tabs button:hover{background:rgba(255,255,255,.22)}
+.tabs button[aria-current="true"]{background:#e6ae4f;color:#1e3048}
+.docs-note{max-width:1460px;margin:16px auto 0;padding:0 20px;color:#6a7686;font:500 14px Montserrat,system-ui,sans-serif}

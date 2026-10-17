@@ -8,8 +8,11 @@ write_portal_config() {
     out=$(service_dynamic_dir portal)
     mkdir -p "$out"
 
-    # Enabled APIs: [{name, host}] with the {subdomain}/{username} placeholders
-    apis=$(for dir in $(enabled_apis); do jq -c '{name, host}' "$dir/api.json"; done | jq -s '.')
+    # Enabled APIs: [{name, host, folder}] with the {subdomain}/{username} placeholders. folder: the API's folder
+    # in config/apis/, mounted read-only in the portal for its openapi.json (see compose.yaml)
+    apis=$(for dir in $(enabled_apis); do
+        jq -c --arg folder "$(basename "$dir")" '{name, host, folder: $folder}' "$dir/api.json"
+    done | jq -s '.')
 
     (umask 027 && jq --arg proto "$proto" --argjson apis "$apis" '
         .domain as $d | .modules as $modules |
@@ -35,7 +38,8 @@ write_portal_config() {
                     }],
                     apis: [$apis[] | {
                         name,
-                        url: url(.host | gsub("\\{subdomain\\}"; $c.subdomain) | gsub("\\{username\\}"; $c.username))
+                        url: url(.host | gsub("\\{subdomain\\}"; $c.subdomain) | gsub("\\{username\\}"; $c.username)),
+                        folder
                     }]
                 })
             }) | from_entries)

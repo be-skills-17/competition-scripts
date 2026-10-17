@@ -13,6 +13,9 @@ It shows:
 - **Server**: CPU, memory, disk, load and uptime, refreshed every 3 seconds, with an "élevé" (≥ 75 %) or
   "critique" (≥ 90 %) label; and the containers using the most CPU.
 
+- **Documentation des API**: a card, when an API is enabled, opening `api-docs.html`: the `openapi.json` of the
+  provided APIs in Swagger UI, documentation only (see [apis.md](apis.md#documentation-swagger)).
+
 ## How it works
 
 Two services:

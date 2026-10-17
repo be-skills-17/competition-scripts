@@ -13,6 +13,8 @@ services:
       - "${SERVICES_DIR}/80-dashboard/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
       # Outside html/: a mount can't be created inside a read-only mount
       - "${DYNAMIC_DIR}/dashboard/config.js:/etc/nginx/dashboard/config.js:ro"
+      # The APIs' openapi.json (api-docs.html), read live: a change shows at once (only openapi.json is served)
+      - "${CONFIG_DIR}/apis:/etc/nginx/apis:ro"
     networks:
       - gitea
     labels:

@@ -10,6 +10,7 @@
 #   php_version    image php:<version>-apache (default "8.3")
 #   sqlite         initial SQLite database, relative to the API folder, copied once per competitor (optional)
 #   env            extra environment variables (optional)
+# An optional openapi.json next to api.json documents the API: the portal and the dashboard show it (Swagger UI).
 
 APIS_DEFAULT_PHP_VERSION="8.3"
 

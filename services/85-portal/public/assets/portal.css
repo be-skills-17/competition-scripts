@@ -100,3 +100,6 @@ button.secondary{background:#e8ecf1;color:var(--navy)}
 button.danger{background:var(--red)}
 button.danger:hover{background:#a3261f;color:#fff}
 button.danger:disabled,button.danger:disabled:hover{opacity:.45;cursor:not-allowed;background:var(--red);color:#fff}
+/* Link to the API documentation (sections/apis) */
+.docs-link{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.docs-link img{width:18px;height:18px}

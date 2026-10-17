@@ -63,6 +63,10 @@ service_apis_validate() {
             sqlite=$(jq -r '.sqlite // empty' "$file")
             [ -d "$dir/$document_root" ] || echo "$label: document_root: folder \"$document_root\" not found"
             [ -z "$sqlite" ] || [ -f "$dir/$sqlite" ] || echo "$label: sqlite: file \"$sqlite\" not found"
+            # Optional documentation, shown by the portal and the dashboard (Swagger UI)
+            if [ -f "$dir/openapi.json" ] && ! jq -e 'type == "object"' "$dir/openapi.json" > /dev/null 2>&1; then
+                echo "apis/$(basename "$dir")/openapi.json: not a valid JSON object"
+            fi
         fi
     done
 

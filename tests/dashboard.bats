@@ -35,6 +35,22 @@ config_json() {
     [ "$(jq -r '.competitors[1].name' <<< "$output")" = "comp02" ]
 }
 
+@test "config.js lists the enabled APIs with their folder (API documentation)" {
+    mkdir -p "$CONFIG_DIR/apis"
+    cp -r "$REPO_DIR/config/apis/template" "$CONFIG_DIR/apis/products"
+    jq '.enabled = true | .name = "products-api"' "$REPO_DIR/config/apis/template/api.json" \
+        > "$CONFIG_DIR/apis/products/api.json"
+    write_dashboard_config
+    [ "$(config_json | jq -c .apis)" = '[{"name":"products-api","folder":"products"}]' ]
+}
+
+@test "nginx serves only the openapi.json of the API folders" {
+    grep -q '"${CONFIG_DIR}/apis:/etc/nginx/apis:ro"' "$SERVICES_DIR/80-dashboard/compose.yaml"
+    run grep -c '/etc/nginx/apis' "$SERVICES_DIR/80-dashboard/nginx.conf"
+    [ "$output" = "1" ]
+    grep -q 'alias /etc/nginx/apis/$1/openapi.json;' "$SERVICES_DIR/80-dashboard/nginx.conf"
+}
+
 @test "pre_up runs through run_service_hook" {
     run_service_hook dashboard pre_up
     [ -f "$DYNAMIC_DIR/dashboard/config.js" ]

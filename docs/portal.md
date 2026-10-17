@@ -8,6 +8,7 @@ The main domain (`https://<domain>/`) serves a portal for competitors:
   database name and repository URL with the credentials (`https://<user>:<password>@git.<domain>/...`, ready for
   `git clone`; the password is hidden on screen, the copied URL is complete), plus the URLs of the provided APIs. A competitor only ever sees their own
   information;
+- **the documentation of the provided APIs** (Swagger UI, `/api-docs.php`, see [apis.md](apis.md#documentation-swagger));
 - **the creation and deletion of their modules' repositories** (see below).
 
 ## How it works
@@ -65,11 +66,16 @@ services/85-portal/
                              creation from a template, deletion
     lib/competitor.php       what a logged-in competitor sees (repository state, clone URLs...): templates
                              only display values computed here; module_action() creates / deletes repositories
+    lib/api_docs.php         openapi.json of the APIs (config/apis, read-only mount), servers set to the
+                             competitor's instance
     lib/view.php             escaping, render(), versioned asset URLs, icons, copy buttons, section bands
-    templates/               HTML only: layout, login, home, sections/{access,modules,apis}
+    templates/               HTML only: layout, login, home, sections/{access,modules,apis}, api-docs
   public/                    document root
     index.php                entry point: handles the POSTs (login, logout, create / delete a repository),
                              renders the layout
+    api-docs.php             API documentation page (Swagger UI) and ?spec=<name> (the competitor's spec)
+    swagger/                 Swagger UI (swagger-ui-dist 5.33.1, Apache 2.0) and its logo
+    assets/api-docs.*        API documentation page (does not load portal.css: it would break Swagger UI)
     assets/portal.css        styles
     assets/portal.js         tooltip, copy / reveal buttons, repository popups
     img/, logo.svg           service icons and logo (not in img/icons: Apache reserves /icons/)

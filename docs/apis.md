@@ -44,6 +44,20 @@ In the PHP code:
 - CORS headers are added by Traefik, competitors' frontends can call the API from their own subdomain;
 - the code is mounted **read-only**: a fix in `config/apis/` applies at once to every competitor, no deploy needed.
 
+## Documentation (Swagger)
+
+Put an OpenAPI description (JSON only) next to `api.json`: `config/apis/<folder>/openapi.json`. The template has an
+example. It is shown with Swagger UI (served locally, nothing loaded from the internet):
+- in the **portal** (`https://<domain>/api-docs.php`, logged-in competitors, link in the "API fournies" section):
+  the `servers` of the file are replaced by the competitor's own instance, so "Try it out" calls their API and
+  their database only;
+- in the **dashboard** (`http://localhost:8090/api-docs.html`, "Documentation des API" card): documentation only,
+  no "Try it out" and no server.
+
+Both read the file live (`config/apis/` is mounted read-only; the dashboard's nginx serves nothing but
+`openapi.json`): a change shows at once. A new API still needs `deploy-apis` to appear. `check-config` reports an
+`openapi.json` that is not valid JSON; an API without one simply has no documentation.
+
 Commands:
 - `sudo ./competition.sh deploy-apis`: after adding, enabling, disabling or changing the `api.json` of an API.
   Existing databases are kept; containers of disabled APIs are removed. `init` deploys the APIs as well.

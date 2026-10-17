@@ -64,6 +64,8 @@ portal() {
         "$REPO_DIR/config/apis/template/api.json" > "$CONFIG_DIR/apis/products/api.json"
     write_portal_config
     [ "$(portal '.competitors.comp02.apis[0].url')" = "https://comp02-beta-products.competition.test/" ]
+    # The folder locates its openapi.json in the read-only mount of config/apis
+    [ "$(portal '.competitors.comp02.apis[0].folder')" = "products" ]
 }
 
 @test "no API section when no API is enabled" {
@@ -76,6 +78,11 @@ portal() {
     run grep -c 'traefik.http.routers' "$SERVICES_DIR/10-traefik/compose.yaml"
     [ "$output" = "0" ]
     grep -q '"127.0.0.1:8091:8080"' "$SERVICES_DIR/10-traefik/compose.yaml"
+}
+
+@test "the portal reads the APIs' openapi.json from config/apis, read-only, outside the document root" {
+    grep -q '"${CONFIG_DIR}/apis:/etc/portal/apis:ro"' "$SERVICES_DIR/85-portal/compose.yaml"
+    grep -q "API_DOCS_DIR = '/etc/portal/apis'" "$SERVICES_DIR/85-portal/app/lib/api_docs.php"
 }
 
 @test "the portal asks Gitea on the internal network for the repositories" {

@@ -36,7 +36,7 @@ function competitor_view(array $portal, string $username): array
         'password' => $competitor['password'],
         'modules' => $modules,
         'templates' => $missing ? with_logos(framework_templates($username, $competitor['password'], $portal['frameworks'] ?? null)) : [],
-        'apis' => $competitor['apis'],
+        'apis' => array_map(fn(array $api) => $api + ['docs' => has_api_docs($api)], $competitor['apis']),
     ];
 }
 

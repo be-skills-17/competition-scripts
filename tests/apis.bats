@@ -77,6 +77,17 @@ edit_api() {
     [[ "$output" == *'name "products" is used by several enabled APIs'* ]]
 }
 
+@test "an invalid openapi.json is reported, a missing one is fine" {
+    run validate_configuration
+    [ -z "$output" ]
+    rm "$CONFIG_DIR/apis/products/openapi.json"
+    run validate_configuration
+    [ -z "$output" ]
+    echo '{"openapi": ' > "$CONFIG_DIR/apis/products/openapi.json"
+    run validate_configuration
+    [[ "$output" == *"apis/products/openapi.json: not a valid JSON object"* ]]
+}
+
 @test "missing document_root and sqlite files are reported" {
     edit_api products '.document_root = "web" | .sqlite = "nope.sqlite"'
     run validate_configuration
