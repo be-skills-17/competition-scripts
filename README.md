@@ -194,7 +194,8 @@ The environment is configured using a JSON file at `config/main.json`. Below is 
 doing anything. To check it on its own: `sudo ./competition.sh check-config`. Rules:
 - `username`, `subdomain` and module names: lowercase letters, digits and dashes only (they are used in
   domain names, container names, image paths and database names), each username and subdomain used once;
-- passwords: no quotes or backslashes (they are inserted as-is in SQL and JSON);
+- passwords: no quotes, backslashes or control characters such as tabs (they are inserted as-is in SQL
+  and JSON);
 - `enable_https`: `true` or `false` (not a string).
 
 ### Manual Installation

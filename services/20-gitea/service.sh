@@ -38,7 +38,11 @@ service_gitea_post_init() {
     generate_registration_token
 
     log_subsection "Gitea access"
-    get_personal_access_token
+    if ! GITEA_TOKEN=$(create_pat); then
+        log_error "$GITEA_TOKEN"
+        exit 1
+    fi
+    export GITEA_TOKEN
     setup_organizations_and_teams
 
     import_all_frameworks

@@ -50,11 +50,6 @@ create_pat() {
     echo "$new_token"
 }
 
-# Get or create PAT token
-get_personal_access_token() {
-    export GITEA_TOKEN=$(create_pat)
-}
-
 # Returns 0 if $GITEA_TOKEN is accepted by Gitea
 gitea_token_is_valid() {
     [ -n "$GITEA_TOKEN" ] || return 1

@@ -42,7 +42,7 @@ push_framework_repo() (
         mv "$tmp_clone/.git" .git
         rm -rf "$tmp_clone"
         git config user.name "Init Bot"
-        git config user.email "iniot@skill17.com"
+        git config user.email "init-bot@$DOMAIN"
         git config http.sslVerify false
 
         git add -A
@@ -62,7 +62,7 @@ push_framework_repo() (
     echo "Configuring git repository..."
     git init -b main > $REDIRECT 2>&1
     git config user.name "Init Bot"
-    git config user.email "iniot@skill17.com"
+    git config user.email "init-bot@$DOMAIN"
     git config http.sslVerify false
 
     echo "Commiting changes..."

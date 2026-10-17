@@ -60,18 +60,12 @@ process_competitor_module() {
 
 # Process a single competitor
 process_competitor() {
-    local config_row=$1
+    local name=$1
+    local username=$2
+    local password=$3
+    local subdomain=$4
 
-    _jq() {
-        echo ${config_row} | base64 --decode | jq -r ${1}
-    }
-
-    local username=$(_jq '.username')
-    local password=$(_jq '.password')
-    local subdomain=$(_jq '.subdomain')
-
-    log_subsection "Competitor: $(_jq '.name')"
-    log_info "Creating Gitea user: $username (subdomain: $subdomain)"
+    log_subsection "Competitor: $name (subdomain: $subdomain)"
 
     create_competitor_user "$username" "$password"
     add_competitor_to_team "frameworks" "competitors" "$username"
@@ -82,15 +76,16 @@ process_competitor() {
     done
 }
 
-# Process all competitors from configuration file
+# Process all competitors from configuration file ("name" is optional, the username is shown instead)
 process_all_competitors() {
     local config_file=$1
+    local name username password subdomain
 
     log_section "Processing All Competitors"
 
-    for row in $(jq -r '.competitors[] | @base64' "$config_file"); do
-        process_competitor "$row"
-    done
+    while IFS=$'\t' read -r name username password subdomain; do
+        process_competitor "$name" "$username" "$password" "$subdomain"
+    done < <(jq -r '.competitors[] | [.name // .username, .username, .password, .subdomain] | @tsv' "$config_file")
 }
 
 # Finalize Docker Compose configuration

@@ -465,18 +465,12 @@ process_competitor_module() {
 
 # Process a single competitor
 process_competitor() {
-    local config_row=$1
+    local name=$1
+    local username=$2
+    local password=$3
+    local subdomain=$4
 
-    _jq() {
-        echo ${config_row} | base64 --decode | jq -r ${1}
-    }
-
-    local username=$(_jq '.username')
-    local password=$(_jq '.password')
-    local subdomain=$(_jq '.subdomain')
-
-    log_subsection "Competitor: $(_jq '.name')"
-    log_info "Creating Gitea user: $username (subdomain: $subdomain)"
+    log_subsection "Competitor: $name (subdomain: $subdomain)"
 
     create_competitor_user "$username" "$password"
     add_competitor_to_team "frameworks" "competitors" "$username"
@@ -487,15 +481,16 @@ process_competitor() {
     done
 }
 
-# Process all competitors from configuration file
+# Process all competitors from configuration file ("name" is optional, the username is shown instead)
 process_all_competitors() {
     local config_file=$1
+    local name username password subdomain
 
     log_section "Processing All Competitors"
 
-    for row in $(jq -r '.competitors[] | @base64' "$config_file"); do
-        process_competitor "$row"
-    done
+    while IFS=$'\t' read -r name username password subdomain; do
+        process_competitor "$name" "$username" "$password" "$subdomain"
+    done < <(jq -r '.competitors[] | [.name // .username, .username, .password, .subdomain] | @tsv' "$config_file")
 }
 
 # Finalize Docker Compose configuration
@@ -548,11 +543,6 @@ setup_directory_vars() {
     export CONFIG_FILE=$CONFIG_DIR/main.json
 }
 
-# Initialize lock file
-create_lock_file() {
-    touch $LOCK_FILE
-}
-
 # Main configuration initialization
 initialize_configuration() {
     log_section "Initializing Configuration"
@@ -564,13 +554,14 @@ initialize_configuration() {
     log_debug "Setup service variables"
     setup_directory_vars
     log_debug "Setup directory variables"
-    create_lock_file
+    touch "$LOCK_FILE"
     log_success "Configuration initialized"
 }
 
 # Print one line per problem in config/main.json (nothing when it is valid).
 # Usernames, subdomains and modules end up in DNS names, container names, image paths and database
-# names; passwords are inserted as-is in SQL and JSON, so quotes and backslashes would break them.
+# names; passwords are inserted as-is in SQL and JSON (quotes and backslashes would break them) and read
+# back as tab-separated values (tabs and other control characters would be mangled).
 validate_configuration() {
     local config_file=$CONFIG_DIR/main.json
 
@@ -586,14 +577,14 @@ validate_configuration() {
     jq -r '
         def text: type == "string" and length > 0;
         def name: text and test("^[a-z0-9][a-z0-9-]*$");
-        def password: text and (test("[\"'"'"'\\\\]") | not);
+        def password: text and (test("[\"'"'"'\\\\[:cntrl:]]") | not);
         def check(cond; message): if cond then empty else message end;
         def duplicates(f): [.[] | f] | group_by(.) | map(select(length > 1) | .[0]) | .[];
 
         check(.domain | text; "domain: required (e.g. \"local.skill17.com\")"),
         check(.enable_https | type == "boolean"; "enable_https: must be true or false"),
         check(.username | name; "username: required, lowercase letters, digits and dashes only"),
-        check(.password | password; "password: required, without quotes or backslashes"),
+        check(.password | password; "password: required, without quotes, backslashes or control characters (tab...)"),
         check(.modules | type == "array" and length > 0 and all(.[]; name);
             "modules: required, a non-empty list of names (lowercase letters, digits and dashes)"),
         check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
@@ -605,7 +596,7 @@ validate_configuration() {
         else
             (.competitors | to_entries[] | .key as $i | .value |
                 check(.username | name; "competitors[\($i)].username: required, lowercase letters, digits and dashes only"),
-                check(.password | password; "competitors[\($i)].password: required, without quotes or backslashes"),
+                check(.password | password; "competitors[\($i)].password: required, without quotes, backslashes or control characters (tab...)"),
                 check(.subdomain | name; "competitors[\($i)].subdomain: required, lowercase letters, digits and dashes only"),
                 check(.name | . == null or text; "competitors[\($i)].name: must be a non-empty string if set")),
             (.competitors | duplicates(.username) | "competitors: username \"\(.)\" is used more than once"),
@@ -737,7 +728,7 @@ push_framework_repo() (
         mv "$tmp_clone/.git" .git
         rm -rf "$tmp_clone"
         git config user.name "Init Bot"
-        git config user.email "iniot@skill17.com"
+        git config user.email "init-bot@$DOMAIN"
         git config http.sslVerify false
 
         git add -A
@@ -757,7 +748,7 @@ push_framework_repo() (
     echo "Configuring git repository..."
     git init -b main > $REDIRECT 2>&1
     git config user.name "Init Bot"
-    git config user.email "iniot@skill17.com"
+    git config user.email "init-bot@$DOMAIN"
     git config http.sslVerify false
 
     echo "Commiting changes..."
@@ -895,11 +886,6 @@ create_pat() {
         return 1
     fi
     echo "$new_token"
-}
-
-# Get or create PAT token
-get_personal_access_token() {
-    export GITEA_TOKEN=$(create_pat)
 }
 
 # Returns 0 if $GITEA_TOKEN is accepted by Gitea

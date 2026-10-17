@@ -38,11 +38,6 @@ setup_directory_vars() {
     export CONFIG_FILE=$CONFIG_DIR/main.json
 }
 
-# Initialize lock file
-create_lock_file() {
-    touch $LOCK_FILE
-}
-
 # Main configuration initialization
 initialize_configuration() {
     log_section "Initializing Configuration"
@@ -54,13 +49,14 @@ initialize_configuration() {
     log_debug "Setup service variables"
     setup_directory_vars
     log_debug "Setup directory variables"
-    create_lock_file
+    touch "$LOCK_FILE"
     log_success "Configuration initialized"
 }
 
 # Print one line per problem in config/main.json (nothing when it is valid).
 # Usernames, subdomains and modules end up in DNS names, container names, image paths and database
-# names; passwords are inserted as-is in SQL and JSON, so quotes and backslashes would break them.
+# names; passwords are inserted as-is in SQL and JSON (quotes and backslashes would break them) and read
+# back as tab-separated values (tabs and other control characters would be mangled).
 validate_configuration() {
     local config_file=$CONFIG_DIR/main.json
 
@@ -76,14 +72,14 @@ validate_configuration() {
     jq -r '
         def text: type == "string" and length > 0;
         def name: text and test("^[a-z0-9][a-z0-9-]*$");
-        def password: text and (test("[\"'"'"'\\\\]") | not);
+        def password: text and (test("[\"'"'"'\\\\[:cntrl:]]") | not);
         def check(cond; message): if cond then empty else message end;
         def duplicates(f): [.[] | f] | group_by(.) | map(select(length > 1) | .[0]) | .[];
 
         check(.domain | text; "domain: required (e.g. \"local.skill17.com\")"),
         check(.enable_https | type == "boolean"; "enable_https: must be true or false"),
         check(.username | name; "username: required, lowercase letters, digits and dashes only"),
-        check(.password | password; "password: required, without quotes or backslashes"),
+        check(.password | password; "password: required, without quotes, backslashes or control characters (tab...)"),
         check(.modules | type == "array" and length > 0 and all(.[]; name);
             "modules: required, a non-empty list of names (lowercase letters, digits and dashes)"),
         check(.frameworks.frameworks_repo | text; "frameworks.frameworks_repo: required (git URL)"),
@@ -95,7 +91,7 @@ validate_configuration() {
         else
             (.competitors | to_entries[] | .key as $i | .value |
                 check(.username | name; "competitors[\($i)].username: required, lowercase letters, digits and dashes only"),
-                check(.password | password; "competitors[\($i)].password: required, without quotes or backslashes"),
+                check(.password | password; "competitors[\($i)].password: required, without quotes, backslashes or control characters (tab...)"),
                 check(.subdomain | name; "competitors[\($i)].subdomain: required, lowercase letters, digits and dashes only"),
                 check(.name | . == null or text; "competitors[\($i)].name: must be a non-empty string if set")),
             (.competitors | duplicates(.username) | "competitors: username \"\(.)\" is used more than once"),
