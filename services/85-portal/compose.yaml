@@ -1,0 +1,27 @@
+# Competitor portal on the main domain (https://<domain>/): public links, and after logging in with their
+# competition credentials, each competitor's own information (credentials, URLs, databases) to copy.
+services:
+  portal:
+    image: php:8.3.26-apache
+    container_name: portal
+    restart: unless-stopped
+    networks:
+      - gitea
+    environment:
+      # Internal URL: the portal checks which repositories each competitor created
+      GITEA_API_URL: http://gitea:3000/api/v1
+    volumes:
+      - "${SERVICES_DIR}/85-portal/public:/var/www/html:ro"
+      # Outside the document root: never served as a file
+      - "${DYNAMIC_PORTAL_DIR}/portal.json:/etc/portal/portal.json:ro"
+    labels:
+      wud.watch: "false"
+      traefik.enable: "true"
+      traefik.http.routers.portal.rule: Host(`${DOMAIN}`)
+      traefik.http.routers.portal.entrypoints: ${ENTRYPOINT}
+      traefik.http.routers.portal.tls: "${ENABLE_HTTPS}"
+      traefik.http.services.portal.loadbalancer.server.port: 80
+
+networks:
+  gitea:
+    external: true

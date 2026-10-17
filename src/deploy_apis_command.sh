@@ -9,6 +9,9 @@ service_apis_pre_init
 compose_file=$(service_apis_compose_file)
 remove_stale_api_containers "$compose_file"
 
+# The portal shows each competitor's API URLs (read at every request, no restart needed)
+declare -F write_portal_config > /dev/null && write_portal_config
+
 if [ -f "$compose_file" ]; then
     docker compose -f "$compose_file" up -d
     log_success "APIs deployed"

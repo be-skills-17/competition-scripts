@@ -25,17 +25,14 @@ services:
       - "80:80"
       - "443:443"
       - "5000:5000"
+      # Traefik dashboard and API (entrypoint "traefik", api.insecure): server only, no public route.
+      # http://localhost:8091/dashboard/ ; the organizer dashboard reaches it through the gitea network.
+      - "127.0.0.1:8091:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "${CONFIG_DIR}/letsencrypt:/letsencrypt"
       - "${CONFIG_DIR}/traefik/config.yaml:/etc/traefik/dynamic/traefik.yaml"
       - "${CONFIG_DIR}/traefik/certs:/etc/certs/"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`${GITEA_HOSTNAME}`)"
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.tls=true"
-      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
 networks:
   gitea:

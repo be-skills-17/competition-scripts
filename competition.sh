@@ -630,7 +630,7 @@ validate_apis() {
 
 # Everything needed to bring an environment back, relative to $BASE_DIR.
 # Competitor images live in Gitea's container registry, so they are inside data/gitea.
-BACKUP_ITEMS=(data config dynamic/docker dynamic/dashboard .env competition.lock)
+BACKUP_ITEMS=(data config dynamic/docker dynamic/dashboard dynamic/portal .env competition.lock)
 
 # Write the given items (relative to $BASE_DIR) into a root-only archive.
 # --numeric-owner: keep container uids (mysql 999, gitea 1000, verdaccio 10001) even if the host maps
@@ -722,6 +722,7 @@ clean_environment() {
     log_subsection "Cleaning up Dynamic Directories"
     rm -rf "$DYNAMIC_DOCKER_DIR"
     rm -rf "$DYNAMIC_DASHBOARD_DIR"
+    rm -rf "$DYNAMIC_PORTAL_DIR"
     rm -rf "$DYNAMIC_FRAMEWORKS_DIR"
     rm -f "$LOCK_FILE"
     log_success "Dynamic directories cleaned"
@@ -973,6 +974,7 @@ set_paths() {
     export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
     export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
     export DYNAMIC_DASHBOARD_DIR=$BASE_DIR/dynamic/dashboard
+    export DYNAMIC_PORTAL_DIR=$BASE_DIR/dynamic/portal
 }
 
 # Load .env, then set the paths again: .env files written by older versions (and old backups) still
@@ -1892,6 +1894,9 @@ competition.sh_deploy_apis_command() {
 
   compose_file=$(service_apis_compose_file)
   remove_stale_api_containers "$compose_file"
+
+  # The portal shows each competitor's API URLs (read at every request, no restart needed)
+  declare -F write_portal_config > /dev/null && write_portal_config
 
   if [ -f "$compose_file" ]; then
       docker compose -f "$compose_file" up -d

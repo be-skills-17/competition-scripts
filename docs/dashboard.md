@@ -7,7 +7,9 @@ tunnel: `ssh -L 8090:localhost:8090 <user>@<server>`, then open <http://localhos
 It shows:
 - **Competitors**: one card per competitor with a link to each module and provided API. The list is read from
   the Traefik API (routers `compXX_<name>`); if Traefik does not answer, it falls back to `config/main.json`.
-- **Services**: links to Gitea, phpMyAdmin, Verdaccio, WUD, Traefik...
+- **Services**: links to Gitea, phpMyAdmin, Verdaccio, WUD, and the **Traefik dashboard**, which is also
+  server-only: <http://localhost:8091/dashboard/> (port `8080` of Traefik published on `127.0.0.1`, no public
+  route; the main domain serves the [competitor portal](portal.md)).
 - **Server**: CPU, memory, disk, load and uptime, refreshed every 3 seconds, with an "élevé" (≥ 75 %) or
   "critique" (≥ 90 %) label; and the containers using the most CPU.
 

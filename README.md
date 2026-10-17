@@ -42,6 +42,7 @@ sudo ./competition.sh init           # create and start everything
 
 | | |
 |---|---|
+| [Competitor portal](docs/portal.md) | `https://<domain>/`: log in to see and copy your credentials, URLs and databases |
 | [Using the environment](docs/usage.md) | Gitea, websites, databases, creating a repository from a template, pushing code |
 
 **Developers**

@@ -1,5 +1,8 @@
 # Using the environment
 
+Start with the portal, `https://<domain>/`: log in with your competition username and password to get your
+credentials, website URLs, database names and Git repository URLs, ready to copy.
+
 - **Git Server (Gitea):**
   Access through the `git` subdomain of your configured domain.
   - Example: `https://git.local.skill17.com`

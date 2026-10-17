@@ -15,6 +15,7 @@ services/
   75-apis/                       service.sh   # compose_file (generated), pre_init (SQLite copies), clean
                                  start-apache.sh
   80-dashboard/    compose.yaml  service.sh   # pre_up (config.js), nginx.conf, html/
+  85-portal/       compose.yaml  service.sh   # pre_up (portal.json), public/ (competitor portal, PHP)
 ```
 
 - `NN` is the start order; `stop`, `clean` go in reverse order. `<name>` is the name used by

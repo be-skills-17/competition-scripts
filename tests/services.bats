@@ -79,5 +79,5 @@ HOOKS
 @test "the real services directory defines the expected order" {
     SERVICES_DIR="$REPO_DIR/services"
     run service_names
-    [ "$output" = $'traefik\ngitea\nrunners\nmysql\nverdaccio\nwud\nglances\ncompetitors\napis\ndashboard' ]
+    [ "$output" = $'traefik\ngitea\nrunners\nmysql\nverdaccio\nwud\nglances\ncompetitors\napis\ndashboard\nportal' ]
 }

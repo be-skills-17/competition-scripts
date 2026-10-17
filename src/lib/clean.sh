@@ -34,6 +34,7 @@ clean_environment() {
     log_subsection "Cleaning up Dynamic Directories"
     rm -rf "$DYNAMIC_DOCKER_DIR"
     rm -rf "$DYNAMIC_DASHBOARD_DIR"
+    rm -rf "$DYNAMIC_PORTAL_DIR"
     rm -rf "$DYNAMIC_FRAMEWORKS_DIR"
     rm -f "$LOCK_FILE"
     log_success "Dynamic directories cleaned"
