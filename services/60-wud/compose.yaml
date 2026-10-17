@@ -10,9 +10,11 @@ services:
       - WUD_AUTH_ADMIN_USER=${USERNAME}
       - WUD_AUTH_ADMIN_PASSWORD=${PASSWORD}
 
-      # Private Gitea registry. The password is a Gitea token, in env_file below (see lib/wud.sh)
-      - WUD_REGISTRY_GITEA_PRIVATE_URL=${GITEA_URL}
-      - WUD_REGISTRY_GITEA_PRIVATE_LOGIN=${USERNAME}
+      # Gitea's registry, declared as a "custom" registry on purpose: WUD's "gitea" provider asks a new registry
+      # token for every request, the custom one caches it (one per image, 60 s). The password is a Gitea token,
+      # in env_file below (see lib/wud.sh). Containers are matched by their image's registry URL.
+      - WUD_REGISTRY_CUSTOM_GITEA_URL=${GITEA_URL}
+      - WUD_REGISTRY_CUSTOM_GITEA_LOGIN=${USERNAME}
 
       - WUD_WATCHER_LOCAL_WATCHBYDEFAULT=false
       - WUD_WATCHER_LOCAL_JITTER=1
@@ -26,7 +28,7 @@ services:
       - WUD_REGISTRY_GCR_PUBLIC_ENABLED=false
       - WUD_REGISTRY_GHCR_PUBLIC_ENABLED=false
       - WUD_REGISTRY_QUAY_PUBLIC_ENABLED=false
-    # WUD_REGISTRY_GITEA_PRIVATE_PASSWORD: a read:package token, written by the pre_up hook. Not required: stop,
+    # WUD_REGISTRY_CUSTOM_GITEA_PASSWORD: a read:package token, written by the pre_up hook. Not required: stop,
     # down... must work before the hook ever ran (an existing installation, until "recreate wud")
     env_file:
       - path: "${DYNAMIC_DIR}/wud/registry.env"

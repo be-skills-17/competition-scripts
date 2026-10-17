@@ -58,3 +58,15 @@ setup() {
     [[ "$output" == *'rule=Host(`alpha-module-a.competition.test`)'* ]]
     [[ "$output" == *"external: true"* ]]
 }
+
+@test "WUD watches the x.y.z tags of each module, not their digest" {
+    push_initial_module_image() { :; }
+    initialize_competitors_config > /dev/null
+    process_competitor_module comp01 module-a alpha
+
+    run cat "$DYNAMIC_DIR/competitors/compose.yaml"
+    [[ "$output" == *'"wud.watch=true"'* ]]
+    [[ "$output" == *"wud.tag.include=^\\d+\\.\\d+\\.\\d+\$\$"* ]]
+    [[ "$output" != *"wud.watch.digest"* ]]
+    [[ "$output" != *"wud.registry"* ]]
+}

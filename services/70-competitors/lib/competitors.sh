@@ -12,6 +12,9 @@ EOF
 }
 
 # Add competitor module to Docker Compose configuration
+# WUD deploys every new x.y.z tag. No "wud.watch.digest": each CI build of the templates pushes a new tag
+# (1.0.<unix time>), and watching digests made WUD ask Gitea for the manifest of the running image every check
+# (404 for the initial image, whose first digest is nginx's on Docker Hub).
 add_competitor_module_to_compose() {
     local user=$1
     local module=$2
@@ -26,8 +29,6 @@ add_competitor_module_to_compose() {
       - gitea
     labels:
       - "wud.watch=true"
-      - "wud.watch.digest=true"
-      - "wud.registry=gitea.private"
       - 'wud.tag.include=^\d+\.\d+\.\d+\$\$'
       - "traefik.enable=true"
       - "traefik.http.routers.${user}_${module}.rule=Host(\`${subdomain}-${module}.$DOMAIN\`)"
