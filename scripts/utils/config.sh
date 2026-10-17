@@ -38,10 +38,9 @@ setup_service_vars() {
 
 # Setup directory variables
 setup_directory_vars() {
-    mkdir -p dynamic/frameworks ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
+    mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
     export TEMP_DIR=$(realpath "dynamic/frameworks")
     export CONFIG_FILE=$(realpath "config/main.json")
-    export IMPORT_SCRIPT=$(realpath "./scripts/utils/import_framework.sh")
 }
 
 # Initialize lock file

@@ -65,41 +65,12 @@ remove_untracked_container() {
     fi
 }
 
-# Older deployments kept Gitea's /data (repositories, packages/registry, avatars...) in an anonymous
-# Docker volume. Copy it to $DATA_DIR/gitea before switching to the bind mount, otherwise all of it is lost.
-migrate_gitea_data() {
-    local volume image
-    docker container inspect gitea > /dev/null 2>&1 || return 0
-    volume=$(docker inspect gitea --format '{{range .Mounts}}{{if and (eq .Destination "/data") (eq .Type "volume")}}{{.Name}}{{end}}{{end}}')
-    [ -n "$volume" ] || return 0
-
-    if [ -d "$DATA_DIR/gitea" ] && [ -n "$(ls -A "$DATA_DIR/gitea" 2>/dev/null)" ]; then
-        log_error "Gitea currently uses volume '$volume' but $DATA_DIR/gitea is not empty."
-        log_error "Refusing to choose between them; move one of them away and retry."
-        exit 1
-    fi
-
-    log_info "Migrating Gitea data from anonymous volume '$volume' to $DATA_DIR/gitea"
-    image=$(docker inspect gitea --format '{{.Config.Image}}')
-    docker stop gitea > /dev/null
-    if ! docker run --rm --entrypoint sh \
-        -v "$volume:/from:ro" -v "$DATA_DIR/gitea:/to" \
-        "$image" -c 'cp -a /from/. /to/'; then
-        log_error "Copy failed, restarting the old Gitea container untouched"
-        docker start gitea > /dev/null
-        exit 1
-    fi
-    log_success "Gitea data migrated (old volume '$volume' kept as a backup, remove it with: docker volume rm $volume)"
-}
-
 recreate_service() {
     local file=$1 svc=$2
     local files=(-f "$file")
     local override=""
 
     log_subsection "$svc"
-
-    [ "$svc" = "gitea" ] && migrate_gitea_data
 
     # Competitor images are bumped by WUD after the initial 1.0.0; keep the image currently running
     # instead of rolling the competitor back to the tag written in competitors.yaml.

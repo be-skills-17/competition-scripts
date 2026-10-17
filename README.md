@@ -122,10 +122,6 @@ What survives a recreate:
 | whatsupdocker | - | update history; it rescans within seconds |
 | competitor containers | - | anything written inside the container; the image currently deployed by WUD is kept |
 
-**Gitea migration:** earlier versions did not mount Gitea's `/data`, so it lived in an anonymous Docker volume.
-The first `sudo ./competition.sh recreate gitea` on such an installation stops Gitea, copies that volume into
-`data/gitea` and only then recreates the container. The old volume is kept as a backup (its name is printed).
-
 **Verbose mode** (shows debug information):
 ```bash
 sudo ./competition.sh -v init

@@ -49,7 +49,8 @@ log_success "Archive OK"
 bash "$ACTIONS_DIR/clean.sh" || { log_error "Clean failed, aborting restore"; exit 1; }
 
 log_section "Extracting Backup"
-tar --numeric-owner -xzpf "$archive" -C "$BASE_DIR" || { log_error "Extraction failed"; exit 1; }
+run_with_spinner "Extracting $(basename "$archive")..." \
+    tar --numeric-owner -xzpf "$archive" -C "$BASE_DIR" || exit 1
 
 # .env stores absolute paths; fix them if the project was moved since the backup
 old_base=$(sed -n 's/^BASE_DIR="\(.*\)"$/\1/p' "$BASE_DIR/.env")

@@ -37,7 +37,6 @@ add_competitor_module_to_compose() {
       - "traefik.http.routers.${user}_${module}.entrypoints=${ENTRYPOINT}"
       - "traefik.http.routers.${user}_${module}.tls=${ENABLE_HTTPS}"
       - "traefik.http.services.${user}_${module}.loadbalancer.server.port=80"
-      - "com.centurylinklabs.watchtower.enable=true"
 EOF
 }
 
@@ -63,8 +62,8 @@ push_initial_module_image() {
     docker tag nginx:latest git.$DOMAIN/$user/$module:1.0.0
     docker tag nginx:latest git.$DOMAIN/$user/$module:latest
     
-    docker push git.$DOMAIN/$user/$module:1.0.0 > $REDIRECT 2>&1
-    docker push git.$DOMAIN/$user/$module:latest > $REDIRECT 2>&1
+    run_with_spinner "Pushing initial image for $user/$module..." \
+        docker push --all-tags git.$DOMAIN/$user/$module
 }
 
 # Process a single competitor module
@@ -84,7 +83,6 @@ process_competitor_module() {
 # Process a single competitor
 process_competitor() {
     local config_row=$1
-    local config_file=$2
     
     _jq() {
         echo ${config_row} | base64 --decode | jq -r ${1}
@@ -113,7 +111,7 @@ process_all_competitors() {
     log_section "Processing All Competitors"
     
     for row in $(jq -r '.competitors[] | @base64' "$config_file"); do
-        process_competitor "$row" "$config_file"
+        process_competitor "$row"
     done
 }
 

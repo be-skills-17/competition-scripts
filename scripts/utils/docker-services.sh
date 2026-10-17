@@ -9,22 +9,28 @@ docker_compose() {
     docker compose -f $DOCKER_DIR/${file} up -d 
 }
 
-# Wait for Gitea to be ready
-wait_for_gitea() {
+# Poll Gitea until it answers, returns 1 after the last retry
+poll_gitea() {
     local retries=10
     local wait=5
     local count=0
 
-    log_info "Waiting for Gitea to be ready..."
     until curl -s http://localhost:3000/api/v1/version > /dev/null; do
         if [ $count -ge $retries ]; then
-            log_error "Gitea did not become ready in time."
-            exit 1
+            return 1
         fi
         log_debug "Gitea health check attempt $((count + 1))/$retries"
         sleep $wait
         count=$((count + 1))
     done
+}
+
+# Wait for Gitea to be ready
+wait_for_gitea() {
+    if ! run_with_spinner "Waiting for Gitea to be ready..." poll_gitea; then
+        log_error "Gitea did not become ready in time."
+        exit 1
+    fi
     log_success "Gitea is ready"
 }
 
@@ -74,10 +80,7 @@ start_competitor_services() {
 # Configure Verdaccio permissions
 configure_verdaccio_permissions() {
     log_info "Configuring Verdaccio permissions..."
-    mkdir -p ${DATA_DIR}/verdaccio/storage
-    mkdir -p ${DATA_DIR}/verdaccio/conf
+    mkdir -p ${DATA_DIR}/verdaccio
     chmod 777 -R ${DATA_DIR}/verdaccio
-    chmod 777 -R ${DATA_DIR}/verdaccio/storage
-    chmod 777 -R ${DATA_DIR}/verdaccio/conf
     log_success "Verdaccio permissions configured"
 }

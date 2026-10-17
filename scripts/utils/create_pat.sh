@@ -22,7 +22,6 @@ response=$(curl -s -k -X POST -H "Content-Type: application/json" \
     "$GITEA_URL/api/v1/users/$USERNAME/tokens")
 
 # Extract the token from the response
-# new_token=$(echo $response | jq -r '.sha1')
 new_token=$(echo "$response" | grep -o '"sha1":"[^"]*"' | sed 's/"sha1":"//;s/"//g')
 
 # Check if the token was successfully created

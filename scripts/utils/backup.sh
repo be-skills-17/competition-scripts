@@ -22,6 +22,15 @@ project_is_running() {
     [ -n "$(docker ps -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")" ]
 }
 
+# Write the given items (relative to $BASE_DIR) into a root-only archive.
+# --numeric-owner: keep container uids (mysql 999, gitea 1000, verdaccio 10001) even if the host maps
+# those numbers to other names or the backup is restored on another machine
+write_archive() {
+    local file=$1
+    shift
+    (umask 077 && tar --numeric-owner -czpf "$file" -C "$BASE_DIR" "$@")
+}
+
 # Create a tar.gz of BACKUP_ITEMS in $BACKUP_DIR. Services must be stopped for a consistent MySQL copy.
 # Sets LAST_BACKUP_FILE (empty when there was nothing to back up).
 create_backup_archive() {
@@ -43,11 +52,7 @@ create_backup_archive() {
     chmod 700 "$BACKUP_DIR"
     LAST_BACKUP_FILE="$BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S)-$label.tar.gz"
 
-    log_info "Creating $LAST_BACKUP_FILE"
-    # --numeric-owner: keep container uids (mysql 999, gitea 1000, verdaccio 10001) even if the host maps
-    # those numbers to other names or the backup is restored on another machine
-    if ! (umask 077 && tar --numeric-owner -czpf "$LAST_BACKUP_FILE" -C "$BASE_DIR" "${items[@]}"); then
-        log_error "Backup failed"
+    if ! run_with_spinner "Creating $LAST_BACKUP_FILE..." write_archive "$LAST_BACKUP_FILE" "${items[@]}"; then
         rm -f "$LAST_BACKUP_FILE"
         return 1
     fi

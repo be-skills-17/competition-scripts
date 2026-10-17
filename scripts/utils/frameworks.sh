@@ -21,7 +21,7 @@ import_framework() {
 setup_docker_registry_credentials() {
     log_info "Setting up Docker registry credentials..."
     
-    docker pull nginx:latest > /dev/null 2>&1
+    run_with_spinner "Pulling nginx image..." docker pull nginx:latest
     docker login -u $USERNAME -p $PASSWORD git.$DOMAIN > /dev/null 2>&1
     log_success "Docker registry credentials configured"
 }
@@ -38,9 +38,8 @@ import_all_frameworks() {
         log_warning "No allowed_frameworks configured, importing all frameworks"
     fi
 
-    log_info "Cloning frameworks repository..."
     rm -rf "$TEMP_DIR"
-    git clone "$FRAMEWORKS_REPO" "$TEMP_DIR" || { log_error "Clone failed"; exit 1; }
+    run_with_spinner "Cloning frameworks repository..." git clone "$FRAMEWORKS_REPO" "$TEMP_DIR" || exit 1
 
     cd "$TEMP_DIR" || exit 1
     rm -rf "$TEMP_DIR/.git"
@@ -58,10 +57,10 @@ import_all_frameworks() {
 
         framework_path=$(realpath "$dir")
         log_subsection "Framework: $framework_name"
-        if import_framework "$framework_path" "$framework_name"; then
+        if run_with_spinner "Importing $framework_name..." import_framework "$framework_path" "$framework_name"; then
+            log_success "$framework_name imported"
             imported+=("$framework_name")
         else
-            log_error "Import of $framework_name failed"
             failed+=("$framework_name")
         fi
     done
