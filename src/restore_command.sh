@@ -36,8 +36,10 @@ load_env_file
 log_section "Starting Services"
 # Competitor images are pulled from Gitea's registry: each service waits for the previous ones
 for name in $(service_names); do
+    compose_file=$(service_compose_file "$name")
+    [ -f "$compose_file" ] || continue
     log_subsection "$name"
-    docker compose -f "$(service_compose_file "$name")" up -d < /dev/null
+    docker compose -f "$compose_file" up -d < /dev/null
     run_service_hook "$name" wait_ready
 done
 

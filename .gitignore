@@ -6,3 +6,6 @@ backups
 dynamic
 competition.lock
 config/traefik/certs
+# APIs are dropped in config/apis/ and not versioned, except the template
+config/apis/*
+!config/apis/template/

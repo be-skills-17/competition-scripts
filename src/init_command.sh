@@ -6,7 +6,13 @@ initialize_configuration
 for name in $(service_names); do
     log_section "Service: $name"
     run_service_hook "$name" pre_init
-    docker compose -f "$(service_compose_file "$name")" up -d
+    compose_file=$(service_compose_file "$name")
+    # pre_init may decide there is nothing to start (e.g. no API enabled)
+    if [ ! -f "$compose_file" ]; then
+        log_info "Nothing to start"
+        continue
+    fi
+    docker compose -f "$compose_file" up -d
     run_service_hook "$name" wait_ready
     run_service_hook "$name" post_init
 done

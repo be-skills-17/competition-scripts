@@ -26,7 +26,7 @@ fi
 
 step "shellcheck"
 if docker run --rm -v "$REPO_DIR:/mnt" "$SHELLCHECK_IMAGE" -S warning -e SC2155,SC2034,SC2011,SC2154 \
-    competition.sh services/*/service.sh tests/run.sh; then
+    competition.sh services/*/service.sh services/*/*.sh tests/run.sh; then
     ok "no warning"
 else
     ko "shellcheck found problems"

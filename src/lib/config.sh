@@ -98,4 +98,9 @@ validate_configuration() {
             (.competitors | duplicates(.subdomain) | "competitors: subdomain \"\(.)\" is used more than once")
         end
     ' "$config_file"
+
+    # The api.json files are checked once main.json is valid (their host names depend on it)
+    local main_errors
+    main_errors=$(jq -r '.competitors | type' "$config_file")
+    [ "$main_errors" = "array" ] && validate_apis
 }

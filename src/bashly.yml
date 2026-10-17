@@ -54,6 +54,25 @@ commands:
   filters: [root, initialized, valid_config]
   dependencies: [docker, jq, curl, git]
 
+- name: deploy-apis
+  help: Deploy the enabled APIs of config/apis/ for every competitor (after adding, changing or disabling one)
+  filters: [root, initialized, valid_config]
+  dependencies: [docker, jq]
+
+- name: reset-api
+  help: Replace a competitor's API database by the initial SQLite database of the API
+  filters: [root, initialized, valid_config]
+  dependencies: [docker, jq]
+  args:
+  - name: api
+    required: true
+    help: API name (the "name" of its api.json)
+  - name: competitor
+    help: Competitor username. All competitors when omitted.
+  examples:
+  - sudo ./competition.sh reset-api products-api comp01
+  - sudo ./competition.sh reset-api products-api
+
 - name: backup
   help: Back up data, config and .env into backups/ (services are stopped during the copy)
   filters: [root, initialized]
