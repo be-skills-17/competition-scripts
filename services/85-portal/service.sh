@@ -4,8 +4,9 @@
 # portal.json: the information shown to each competitor once logged in. It holds their passwords: readable by
 # root and the www-data group (gid 33, Apache in the php image) only.
 write_portal_config() {
-    local proto=${GITEA_PROTOCOL:-https} apis dir
-    mkdir -p "$DYNAMIC_PORTAL_DIR"
+    local proto=${GITEA_PROTOCOL:-https} apis dir out
+    out=$(service_dynamic_dir portal)
+    mkdir -p "$out"
 
     # Enabled APIs: [{name, host}] with the {subdomain}/{username} placeholders
     apis=$(for dir in $(enabled_apis); do jq -c '{name, host}' "$dir/api.json"; done | jq -s '.')
@@ -36,8 +37,8 @@ write_portal_config() {
                     }]
                 })
             }) | from_entries)
-        }' "$CONFIG_DIR/main.json" > "$DYNAMIC_PORTAL_DIR/portal.json")
-    chgrp 33 "$DYNAMIC_PORTAL_DIR/portal.json" 2> /dev/null || true
+        }' "$CONFIG_DIR/main.json" > "$out/portal.json")
+    chgrp 33 "$out/portal.json" 2> /dev/null || true
 }
 
 # Before every "up" (init, restore, recreate): the file must exist, and APIs may have changed

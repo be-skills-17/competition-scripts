@@ -11,13 +11,13 @@ setup() {
 
 # The JSON object assigned to window.DASHBOARD_CONFIG
 config_json() {
-    sed '1s/^window.DASHBOARD_CONFIG = //; $s/;$//' "$DYNAMIC_DASHBOARD_DIR/config.js"
+    sed '1s/^window.DASHBOARD_CONFIG = //; $s/;$//' "$DYNAMIC_DIR/dashboard/config.js"
 }
 
 @test "config.js assigns window.DASHBOARD_CONFIG" {
     service_dashboard_pre_up
-    [[ "$(head -n1 "$DYNAMIC_DASHBOARD_DIR/config.js")" == "window.DASHBOARD_CONFIG = {" ]]
-    [[ "$(tail -n1 "$DYNAMIC_DASHBOARD_DIR/config.js")" == "};" ]]
+    [[ "$(head -n1 "$DYNAMIC_DIR/dashboard/config.js")" == "window.DASHBOARD_CONFIG = {" ]]
+    [[ "$(tail -n1 "$DYNAMIC_DIR/dashboard/config.js")" == "};" ]]
 }
 
 @test "config.js contains the domain, modules and competitors, without passwords" {
@@ -37,7 +37,7 @@ config_json() {
 
 @test "pre_up runs through run_service_hook" {
     run_service_hook dashboard pre_up
-    [ -f "$DYNAMIC_DASHBOARD_DIR/config.js" ]
+    [ -f "$DYNAMIC_DIR/dashboard/config.js" ]
 }
 
 @test "the dashboard is only published on the loopback interface" {

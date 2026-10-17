@@ -11,7 +11,7 @@ setup() {
 }
 
 portal() {
-    jq -r "$1" "$DYNAMIC_PORTAL_DIR/portal.json"
+    jq -r "$1" "$DYNAMIC_DIR/portal/portal.json"
 }
 
 @test "public links and database use the domain" {
@@ -37,13 +37,13 @@ portal() {
 
 @test "the admin credentials are not in portal.json" {
     write_portal_config
-    run grep -c 'admin password' "$DYNAMIC_PORTAL_DIR/portal.json"
+    run grep -c 'admin password' "$DYNAMIC_DIR/portal/portal.json"
     [ "$output" = "0" ]
 }
 
 @test "portal.json is not readable by other users" {
     write_portal_config
-    [ "$(stat -c %a "$DYNAMIC_PORTAL_DIR/portal.json")" = "640" ]
+    [ "$(stat -c %a "$DYNAMIC_DIR/portal/portal.json")" = "640" ]
 }
 
 @test "enabled APIs get each competitor's URL" {

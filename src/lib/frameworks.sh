@@ -113,11 +113,13 @@ import_all_frameworks() {
         log_warning "No allowed_frameworks configured, importing all frameworks"
     fi
 
-    rm -rf "$DYNAMIC_FRAMEWORKS_DIR"
-    run_with_spinner "Cloning frameworks repository..." git clone "$FRAMEWORKS_REPO" "$DYNAMIC_FRAMEWORKS_DIR" || exit 1
+    # Temporary clone, removed once imported
+    local clone
+    clone=$(mktemp -d)
+    run_with_spinner "Cloning frameworks repository..." git clone "$FRAMEWORKS_REPO" "$clone" || { rm -rf "$clone"; exit 1; }
 
-    cd "$DYNAMIC_FRAMEWORKS_DIR" || exit 1
-    rm -rf "$DYNAMIC_FRAMEWORKS_DIR/.git"
+    cd "$clone" || exit 1
+    rm -rf "$clone/.git"
 
     local imported=() failed=()
     for dir in */; do
@@ -147,6 +149,7 @@ import_all_frameworks() {
 
     log_success "Imported ${#imported[@]} framework(s): ${imported[*]}"
     [ ${#failed[@]} -eq 0 ] || log_error "Failed: ${failed[*]}"
-    cd - > /dev/null
+    cd - > /dev/null || exit 1
+    rm -rf "$clone"
     [ ${#failed[@]} -eq 0 ]
 }

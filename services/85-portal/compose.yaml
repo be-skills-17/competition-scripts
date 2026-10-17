@@ -13,7 +13,7 @@ services:
     volumes:
       - "${SERVICES_DIR}/85-portal/public:/var/www/html:ro"
       # Outside the document root: never served as a file
-      - "${DYNAMIC_PORTAL_DIR}/portal.json:/etc/portal/portal.json:ro"
+      - "${DYNAMIC_DIR}/portal/portal.json:/etc/portal/portal.json:ro"
     labels:
       wud.watch: "false"
       traefik.enable: "true"

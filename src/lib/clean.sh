@@ -9,6 +9,13 @@ clean_environment() {
 
     log_subsection "Stopping Docker Services"
     compose_each --reverse down -v
+    # Containers whose compose file is missing (moved, deleted...) are still labelled with the project
+    local leftovers
+    leftovers=$(docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")
+    if [ -n "$leftovers" ]; then
+        log_warning "Removing $(wc -w <<< "$leftovers") container(s) without compose file"
+        docker rm -f -v $leftovers > /dev/null
+    fi
     log_success "Docker services stopped"
 
     # Services are down at this point, so the copy is consistent
@@ -32,10 +39,7 @@ clean_environment() {
     done
 
     log_subsection "Cleaning up Dynamic Directories"
-    rm -rf "$DYNAMIC_DOCKER_DIR"
-    rm -rf "$DYNAMIC_DASHBOARD_DIR"
-    rm -rf "$DYNAMIC_PORTAL_DIR"
-    rm -rf "$DYNAMIC_FRAMEWORKS_DIR"
+    rm -rf "$DYNAMIC_DIR"
     rm -f "$LOCK_FILE"
     log_success "Dynamic directories cleaned"
 

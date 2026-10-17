@@ -5,7 +5,8 @@ load test_helper
 
 setup() {
     setup_project
-    mkdir -p "$DYNAMIC_DOCKER_DIR"
+    SERVICES_DIR="$REPO_DIR/services"
+    source "$SERVICES_DIR/70-competitors/service.sh"
     DOMAIN=competition.test
     ENTRYPOINT=websecure
     ENABLE_HTTPS=true
@@ -50,7 +51,7 @@ setup() {
     process_competitor_module comp01 module-a alpha
     finalize_docker_compose_config
 
-    run cat "$DYNAMIC_DOCKER_DIR/competitors.yaml"
+    run cat "$DYNAMIC_DIR/competitors/compose.yaml"
     [[ "${lines[0]}" == "services:" ]]
     [[ "$output" == *"  comp01_module-a:"* ]]
     [[ "$output" == *"image: git.competition.test/comp01/module-a:1.0.0"* ]]

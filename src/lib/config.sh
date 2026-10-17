@@ -34,7 +34,6 @@ setup_service_vars() {
 
 # Setup directory variables
 setup_directory_vars() {
-    mkdir -p ${DYNAMIC_DOCKER_DIR} ${DYNAMIC_FRAMEWORKS_DIR}
     export CONFIG_FILE=$CONFIG_DIR/main.json
 }
 

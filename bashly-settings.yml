@@ -4,3 +4,6 @@
 source_dir: src
 target_dir: .
 env: production
+# No "set -e" in the generated script (bashly adds it by default, even with strict: false): the code is written to
+# handle errors itself, and a harmless failure (e.g. an image that can't be removed) must not stop a command midway
+strict: ""

@@ -5,7 +5,8 @@ load test_helper
 
 setup() {
     setup_project
-    mkdir -p "$DATA_DIR/gitea" "$DYNAMIC_DOCKER_DIR"
+    mkdir -p "$DATA_DIR/gitea" "$DYNAMIC_DIR/portal"
+    echo '{}' > "$DYNAMIC_DIR/portal/portal.json"
     echo repo > "$DATA_DIR/gitea/file"
     echo 'DOMAIN="competition.test"' > "$BASE_DIR/.env"
     touch "$LOCK_FILE"
@@ -23,7 +24,7 @@ setup() {
     run tar -tzf "$LAST_BACKUP_FILE"
     [[ "$output" == *"data/gitea/file"* ]]
     [[ "$output" == *"config/main.json"* ]]
-    [[ "$output" == *"dynamic/docker/"* ]]
+    [[ "$output" == *"dynamic/portal/portal.json"* ]]
     [[ "$output" == *".env"* ]]
     [[ "$output" == *"competition.lock"* ]]
 }

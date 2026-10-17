@@ -30,11 +30,8 @@ set_paths() {
     export DATA_DIR=$BASE_DIR/data
     export BACKUP_DIR=$BASE_DIR/backups
     export LOCK_FILE=$BASE_DIR/competition.lock
-    # Generated files
-    export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
-    export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
-    export DYNAMIC_DASHBOARD_DIR=$BASE_DIR/dynamic/dashboard
-    export DYNAMIC_PORTAL_DIR=$BASE_DIR/dynamic/portal
+    # Generated files: each service writes in dynamic/<service>/ (see service_dynamic_dir)
+    export DYNAMIC_DIR=$BASE_DIR/dynamic
 }
 
 # Load .env, then set the paths again: .env files written by older versions (and old backups) still

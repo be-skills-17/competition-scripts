@@ -2,7 +2,8 @@
 initialize_competitors_config() {
     log_info "Initializing competitors configuration..."
 
-    cat <<EOF > $DYNAMIC_DOCKER_DIR/competitors.yaml
+    mkdir -p "$(dirname "$(service_compose_file competitors)")"
+    cat <<EOF > "$(service_compose_file competitors)"
 services:
 EOF
 }
@@ -13,7 +14,7 @@ add_competitor_module_to_compose() {
     local module=$2
     local subdomain=$3
 
-    cat <<EOF >> $DYNAMIC_DOCKER_DIR/competitors.yaml
+    cat <<EOF >> "$(service_compose_file competitors)"
   ${user}_${module}:
     image: git.${DOMAIN}/${user}/${module}:1.0.0
     container_name: ${user}_${module}
@@ -90,7 +91,7 @@ process_all_competitors() {
 
 # Finalize Docker Compose configuration
 finalize_docker_compose_config() {
-    cat <<EOF >> $DYNAMIC_DOCKER_DIR/competitors.yaml
+    cat <<EOF >> "$(service_compose_file competitors)"
 
 networks:
   gitea:

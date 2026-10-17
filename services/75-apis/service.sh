@@ -3,7 +3,7 @@
 
 # The compose file is generated from the enabled APIs by pre_init (and deploy-apis)
 service_apis_compose_file() {
-    echo "$DYNAMIC_DOCKER_DIR/apis.yaml"
+    echo "$(service_dynamic_dir apis)/compose.yaml"
 }
 
 # SQLite copies and compose file; no compose file at all when no API is enabled

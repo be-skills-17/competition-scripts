@@ -21,6 +21,9 @@ services/
 - `NN` is the start order; `stop`, `clean` go in reverse order. `<name>` is the name used by
   `recreate` and in hook names.
 - `compose.yaml` is the service's compose file.
+- Files generated for the service (a generated compose file, configs mounted in containers...) go to
+  `dynamic/<name>/` (`service_dynamic_dir <name>`, `${DYNAMIC_DIR}/<name>/` in a compose file). The core backs up
+  and cleans `dynamic/` as a whole: a service never needs changes in `src/`.
 - `service.sh` is optional and defines hooks named `service_<name>_<hook>` (dashes in `<name>` become
   underscores). Every hook is optional:
 

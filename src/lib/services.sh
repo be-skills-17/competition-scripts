@@ -31,6 +31,12 @@ service_dir() {
     return 1
 }
 
+# Folder of the files generated for a service (compose files, configs...): dynamic/<name>/.
+# The core backs up and cleans dynamic/ as a whole, so a service never needs changes outside its own folder.
+service_dynamic_dir() {
+    echo "$DYNAMIC_DIR/$1"
+}
+
 # Call service_<name>_<hook> with the remaining arguments, if the service defines it
 run_service_hook() {
     local name=$1 hook=$2

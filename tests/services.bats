@@ -11,7 +11,7 @@ setup() {
 service_git_post_init() { echo "post_init git $*"; }
 HOOKS
     add_service 40-generated --hooks <<'HOOKS'
-service_generated_compose_file() { echo "$DYNAMIC_DOCKER_DIR/generated.yaml"; }
+service_generated_compose_file() { echo "$DYNAMIC_DIR/generated.yaml"; }
 HOOKS
 }
 
@@ -48,13 +48,13 @@ HOOKS
 
 @test "the compose_file hook overrides the compose file" {
     run service_compose_file generated
-    [ "$output" = "$DYNAMIC_DOCKER_DIR/generated.yaml" ]
+    [ "$output" = "$DYNAMIC_DIR/generated.yaml" ]
 }
 
 @test "compose_files lists every compose file in start order" {
     run compose_files
     [ "${lines[0]}" = "$SERVICES_DIR/10-proxy/compose.yaml" ]
-    [ "${lines[3]}" = "$DYNAMIC_DOCKER_DIR/generated.yaml" ]
+    [ "${lines[3]}" = "$DYNAMIC_DIR/generated.yaml" ]
 }
 
 @test "a defined hook is called with its arguments" {
@@ -80,4 +80,14 @@ HOOKS
     SERVICES_DIR="$REPO_DIR/services"
     run service_names
     [ "$output" = $'traefik\ngitea\nrunners\nmysql\nverdaccio\nwud\nglances\ncompetitors\napis\ndashboard\nportal' ]
+}
+
+@test "generated files go to dynamic/<service>/" {
+    run service_dynamic_dir portal
+    [ "$output" = "$DYNAMIC_DIR/portal" ]
+}
+
+@test "the core does not reference any service's generated files" {
+    run grep -rnE 'dynamic/(docker|frameworks|dashboard|portal|competitors|apis)|DYNAMIC_[A-Z]+_DIR' "$REPO_DIR/src"
+    [ "$status" -ne 0 ]
 }

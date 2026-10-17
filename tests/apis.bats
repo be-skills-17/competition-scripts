@@ -7,7 +7,7 @@ setup() {
     setup_project
     SERVICES_DIR="$REPO_DIR/services"
     source "$SERVICES_DIR/75-apis/service.sh"
-    mkdir -p "$DYNAMIC_DOCKER_DIR" "$DATA_DIR"
+    mkdir -p "$DATA_DIR"
     DOMAIN=competition.test
     ENTRYPOINT=websecure
     ENABLE_HTTPS=true
@@ -98,8 +98,8 @@ edit_api() {
 }
 
 @test "the compose file has one container per API and competitor" {
-    generate_apis_compose "$DYNAMIC_DOCKER_DIR/apis.yaml"
-    run cat "$DYNAMIC_DOCKER_DIR/apis.yaml"
+    generate_apis_compose "$DYNAMIC_DIR/apis/compose.yaml"
+    run cat "$DYNAMIC_DIR/apis/compose.yaml"
     [[ "$output" == *"  comp01_products:"* ]]
     [[ "$output" == *"  comp02_products:"* ]]
     [[ "$output" == *"image: php:8.3-apache"* ]]
@@ -110,15 +110,16 @@ edit_api() {
 
 @test "env values are passed with \$ escaped for compose" {
     edit_api products '.env = {"PRICE": "10$"}'
-    generate_apis_compose "$DYNAMIC_DOCKER_DIR/apis.yaml"
-    grep -q 'PRICE: "10\$\$"' "$DYNAMIC_DOCKER_DIR/apis.yaml"
+    generate_apis_compose "$DYNAMIC_DIR/apis/compose.yaml"
+    grep -q 'PRICE: "10\$\$"' "$DYNAMIC_DIR/apis/compose.yaml"
 }
 
 @test "no compose file is written when no API is enabled" {
-    echo "services:" > "$DYNAMIC_DOCKER_DIR/apis.yaml"
+    mkdir -p "$DYNAMIC_DIR/apis"
+    echo "services:" > "$DYNAMIC_DIR/apis/compose.yaml"
     edit_api products '.enabled = false'
-    generate_apis_compose "$DYNAMIC_DOCKER_DIR/apis.yaml"
-    [ ! -f "$DYNAMIC_DOCKER_DIR/apis.yaml" ]
+    generate_apis_compose "$DYNAMIC_DIR/apis/compose.yaml"
+    [ ! -f "$DYNAMIC_DIR/apis/compose.yaml" ]
 }
 
 @test "each competitor gets a copy of the initial database" {
