@@ -23,7 +23,7 @@ sudo ./competition.sh setup
 
 # Configure your competition in config/main.json
 # Then initialize the environment
-./competition.sh init
+sudo ./competition.sh init
 ```
 
 ### Prerequisites
@@ -40,33 +40,56 @@ If you prefer to install dependencies manually, see [Manual Installation](#manua
 
 ### Commands
 
-All commands use the main `./competition.sh` script with actions:
+All commands use the main `./competition.sh` script with actions. It must always be run with `sudo`
+(data files belong to container users such as MySQL's uid 999, only root can create, back up and restore them):
 
 ```bash
 # Install all dependencies (requires sudo, run once)
 sudo ./competition.sh setup
 
 # Initialize the environment (generates configs, starts services)
-./competition.sh init
+sudo ./competition.sh init
 
 # Start all services
-./competition.sh start
+sudo ./competition.sh start
 
 # Stop all services
-./competition.sh stop
+sudo ./competition.sh stop
 
 # Recreate one or more services without touching the rest of the stack
-./competition.sh recreate gitea
-./competition.sh recreate verdaccio wud
-./competition.sh recreate comp01_module-a
+sudo ./competition.sh recreate gitea
+sudo ./competition.sh recreate verdaccio wud
+sudo ./competition.sh recreate comp01_module-a
 
-# Clean the entire system (removes volumes, images, configs)
-./competition.sh clean
+# Back up the whole environment into backups/
+sudo ./competition.sh backup
+
+# Restore a backup (a file, a name from backups/, or "latest")
+sudo ./competition.sh restore latest
+
+# Clean the entire system (removes volumes, images, configs); a backup is made first
+sudo ./competition.sh clean
+sudo ./competition.sh clean --no-backup
 ```
+
+### Backup and restore
+
+A backup is a `backups/backup-<date>-<manual|clean>.tar.gz` archive containing `data/` (Gitea repositories and
+container registry, both MySQL databases, Verdaccio packages, runner registrations), `config/`,
+`dynamic/docker/competitors.yaml`, `.env` and `competition.lock`.
+
+- `backup` stops the services while copying (MySQL files must not change during the copy) and starts them again.
+  Expect a short downtime.
+- `clean` backs up after the services are stopped and before deleting anything. If the backup fails, nothing is
+  deleted. Use `--no-backup` to skip it.
+- `restore` checks the archive, runs `clean` (so the current state is backed up too), extracts the archive and
+  starts every service. Paths in `.env` are updated if the project was moved to another directory.
+
+Backups are never deleted automatically; remove old ones from `backups/` yourself.
 
 ### Recreating a single service
 
-`./competition.sh recreate <service|group> ...` runs `docker compose up -d --no-deps --force-recreate` on the
+`sudo ./competition.sh recreate <service|group> ...` runs `docker compose up -d --no-deps --force-recreate` on the
 given services only. Run it without arguments to list the available names. A group (`traefik`, `gitea`,
 `runners`, `mysql`, `verdaccio`, `wud`, `competitors`) recreates every service of that compose file; an exact
 service name always wins (`gitea` only recreates the Gitea container, not `gitea-db`).
@@ -86,16 +109,16 @@ What survives a recreate:
 | competitor containers | - | anything written inside the container; the image currently deployed by WUD is kept |
 
 **Gitea migration:** earlier versions did not mount Gitea's `/data`, so it lived in an anonymous Docker volume.
-The first `./competition.sh recreate gitea` on such an installation stops Gitea, copies that volume into
+The first `sudo ./competition.sh recreate gitea` on such an installation stops Gitea, copies that volume into
 `data/gitea` and only then recreates the container. The old volume is kept as a backup (its name is printed).
 
 **Verbose mode** (shows debug information):
 ```bash
-./competition.sh -v init
-./competition.sh --verbose start
+sudo ./competition.sh -v init
+sudo ./competition.sh --verbose start
 ```
 
-**Note:** If you have previously run `./competition.sh init`, make sure to clean the environment first by running `./competition.sh clean` before initializing again. This ensures a fresh setup and avoids potential conflicts. Do NOT manually delete `competition.lock`, it's there as a safeguard and should only be cleared with `./competition.sh clean`
+**Note:** If you have previously run `sudo ./competition.sh init`, make sure to clean the environment first by running `sudo ./competition.sh clean` before initializing again. This ensures a fresh setup and avoids potential conflicts. Do NOT manually delete `competition.lock`, it's there as a safeguard and should only be cleared with `sudo ./competition.sh clean`
 
 ### Configuration
 The environment is configured using a JSON file at `config/main.json`. Below is the structure:
@@ -148,7 +171,7 @@ The environment is configured using a JSON file at `config/main.json`. Below is 
 
 ### Manual Installation
 
-If you prefer to install dependencies manually instead of using `./competition.sh setup`:
+If you prefer to install dependencies manually instead of using `sudo ./competition.sh setup`:
 
 **For Debian/Ubuntu:**
 ```bash
@@ -253,7 +276,7 @@ git --version
 ### Services not starting
 - Check Docker is running: `docker ps`
 - View logs: `docker compose -f docker/gitea.yaml logs`
-- Use verbose mode: `./competition.sh -v init`
+- Use verbose mode: `sudo ./competition.sh -v init`
 
 ### Configuration issues
 - Verify `config/main.json` is valid JSON: `jq . config/main.json`
@@ -261,6 +284,6 @@ git --version
 - Ensure all required fields are present
 
 ### Cleaning up
-- To reset everything: `./competition.sh clean`
-- To stop without removing data: `./competition.sh stop`
-- To restart: `./competition.sh start`
+- To reset everything: `sudo ./competition.sh clean`
+- To stop without removing data: `sudo ./competition.sh stop`
+- To restart: `sudo ./competition.sh start`

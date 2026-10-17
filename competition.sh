@@ -22,13 +22,22 @@ fi
 
 # Check if the correct number of arguments are provided
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <ACTION [clean,init,setup,start,stop,recreate]>"
+    echo "Usage: $0 <ACTION [backup,clean,init,recreate,restore,setup,start,stop]>"
     echo "       $0 recreate <service|group> [<service|group> ...]"
+    echo "       $0 clean [--no-backup]"
+    echo "       $0 restore <backup file | latest>"
     exit 1
 fi
 
 ACTION=$1
 shift
+
+# Data files belong to container users (root, mysql 999, gitea 1000, verdaccio 10001), so every action
+# runs as root: init creates them, backup/clean read them, restore gives them back their owners.
+if [ "$EUID" -ne 0 ]; then
+    echo "This script must be run as root: sudo $0 $ACTION $*"
+    exit 1
+fi
 
 
 if [ -f .env ]; then
@@ -53,6 +62,7 @@ export DYNAMIC_DOCKER_DIR=$BASE_DIR/dynamic/docker
 export DYNAMIC_FRAMEWORKS_DIR=$BASE_DIR/dynamic/frameworks
 
 export LOCK_FILE=$BASE_DIR/competition.lock
+export BACKUP_DIR=$BASE_DIR/backups
 
 function is_already_initialized() {
     if [ -f "$LOCK_FILE" ]; then
@@ -65,7 +75,17 @@ function is_already_initialized() {
 
 case $ACTION in
     clean)
-        bash "$ACTIONS_DIR/clean.sh"
+        bash "$ACTIONS_DIR/clean.sh" "$@"
+        ;;
+    backup)
+        if ! is_already_initialized; then
+            echo "Competition is not initialized. Please run the 'init' action first."
+            exit 1
+        fi
+        bash "$ACTIONS_DIR/backup.sh"
+        ;;
+    restore)
+        bash "$ACTIONS_DIR/restore.sh" "$@"
         ;;
     init)
         if is_already_initialized; then
@@ -100,7 +120,7 @@ case $ACTION in
         ;;
     *)
         echo "Invalid action: $ACTION"
-        echo "Valid actions are: clean, init, setup, start, stop, recreate"
+        echo "Valid actions are: backup, clean, init, recreate, restore, setup, start, stop"
         exit 1
         ;;
 esac
