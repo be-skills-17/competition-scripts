@@ -16,6 +16,20 @@ It shows:
 - **Documentation des API**: a card, when an API is enabled, opening `api-docs.html`: the `openapi.json` of the
   provided APIs in Swagger UI, documentation only (see [apis.md](apis.md#documentation-swagger)).
 
+## Portainer
+
+[Portainer](https://www.portainer.io/) (`services/82-portainer`) manages the Docker containers, images and
+volumes: <https://localhost:9443> (self-signed certificate, accept it in the browser). Like the dashboard, it is
+published on `127.0.0.1` only and has no Traefik route: it controls the whole Docker host through the socket.
+
+Log in as `admin` with the password of `config/main.json`. Portainer only reads that password on its first start
+(file `dynamic/portainer/admin_password`, written by the `pre_up` hook); change it later in Portainer itself. Its
+data (users, settings) is in `data/portainer/`, backed up with the rest. On an existing installation:
+
+```bash
+sudo ./competition.sh recreate portainer
+```
+
 ## How it works
 
 Two services:

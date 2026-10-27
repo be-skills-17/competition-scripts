@@ -15,6 +15,7 @@ services/
   75-apis/                       service_hooks.sh  lib/   # compose_file (generated), pre_init (SQLite copies), clean
                                  start-apache.sh
   80-dashboard/    compose.yaml  service_hooks.sh  lib/   # pre_up (config.js), nginx.conf, html/
+  82-portainer/    compose.yaml  service_hooks.sh         # pre_up (admin password file), Docker UI on 127.0.0.1:9443
   85-portal/       compose.yaml  service_hooks.sh  lib/   # pre_up (portal.json), public/ (competitor portal, PHP)
 ```
 

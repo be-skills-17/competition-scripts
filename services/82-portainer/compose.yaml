@@ -1,0 +1,18 @@
+# Portainer: Docker management UI for the organizers.
+# Only reachable from the server itself (https://localhost:9443, self-signed certificate), never through Traefik:
+# it controls the whole Docker host through the socket.
+services:
+  portainer:
+    image: portainer/portainer-ce:2.45.2
+    container_name: portainer
+    restart: unless-stopped
+    # Admin "admin" created on first start with the password of config/main.json (file written by the pre_up hook)
+    command: --admin-password-file /run/portainer/admin_password
+    ports:
+      - "127.0.0.1:9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${DATA_DIR}/portainer:/data"
+      - "${DYNAMIC_DIR}/portainer/admin_password:/run/portainer/admin_password:ro"
+    labels:
+      wud.watch: "false"
