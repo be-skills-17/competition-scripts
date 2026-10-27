@@ -12,6 +12,9 @@ services:
       - "--providers.file.directory=/etc/traefik/dynamic"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      # Containers on several networks (modules: gitea + competitors-db) would otherwise be reached on a random one,
+      # often competitors-db, which Traefik is not on: 504 Gateway Timeout
+      - "--providers.docker.network=gitea"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:${REGISTRY_PORT}"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"

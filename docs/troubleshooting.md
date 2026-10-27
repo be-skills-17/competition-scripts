@@ -15,6 +15,14 @@
 - To stop without removing data: `sudo ./competition.sh stop`
 - To restart: `sudo ./competition.sh start`
 
+## 504 Gateway Timeout on a module
+
+The modules are on two networks: `gitea` (Traefik) and `competitors-db` (MySQL). Traefik must reach them on
+`gitea` (`--providers.docker.network=gitea` in `services/10-traefik/compose.yaml`); otherwise it picks one
+network at random and times out on `competitors-db`. The address it uses is shown by
+`curl -s http://127.0.0.1:8091/api/http/services | jq -r '.[] | "\(.name) \(.loadBalancer.servers[0].url)"'`:
+every module should be on the `gitea` subnet.
+
 ## Gitea uses a lot of CPU every few seconds
 
 WUD checks every competitor image in Gitea's registry every 10 seconds (`WUD_WATCHER_LOCAL_CRON` in

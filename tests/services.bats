@@ -129,3 +129,7 @@ HOOKS
         [ -z "$output" ] || { echo "$file: $output"; return 1; }
     done
 }
+
+@test "Traefik reaches containers on the gitea network (modules are also on competitors-db)" {
+    grep -q -- '--providers.docker.network=gitea' "$REPO_DIR/services/10-traefik/compose.yaml"
+}
