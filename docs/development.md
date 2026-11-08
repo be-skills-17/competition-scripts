@@ -45,3 +45,15 @@ tests/run.sh tests/config.bats    # a single test file
 
 - Adding a command: declare it in `src/bashly.yml`, run the generate command above; bashly creates
   `src/<command>_command.sh` for you to fill.
+
+## Leaving the APIs template out of a clone
+
+`config/apis/template/` is versioned (example API, used by the tests). To keep it out of a clone's working tree
+without deleting it from git (an organizer's server only holds the real APIs):
+
+```bash
+git sparse-checkout set --no-cone '/*' '!/config/apis/template/'   # back: git sparse-checkout disable
+```
+
+The files stay in git (`git ls-files -t` shows them as `S`) and a commit never removes them. `tests/run.sh` then
+takes the template from `HEAD`.

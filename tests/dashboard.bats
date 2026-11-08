@@ -37,8 +37,8 @@ config_json() {
 
 @test "config.js lists the enabled APIs with their folder (API documentation)" {
     mkdir -p "$CONFIG_DIR/apis"
-    cp -r "$REPO_DIR/config/apis/template" "$CONFIG_DIR/apis/products"
-    jq '.enabled = true | .name = "products-api"' "$REPO_DIR/config/apis/template/api.json" \
+    cp -r "$API_TEMPLATE_DIR" "$CONFIG_DIR/apis/products"
+    jq '.enabled = true | .name = "products-api"' "$API_TEMPLATE_DIR/api.json" \
         > "$CONFIG_DIR/apis/products/api.json"
     write_dashboard_config
     [ "$(config_json | jq -c .apis)" = '[{"name":"products-api","folder":"products"}]' ]

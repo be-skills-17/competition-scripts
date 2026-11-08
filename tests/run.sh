@@ -13,9 +13,20 @@ step() { printf '\n\033[1;36m▶ %s\033[0m\n' "$1"; }
 ok() { printf '\033[0;32m✓ %s\033[0m\n' "$1"; }
 ko() { printf '\033[0;31m✗ %s\033[0m\n' "$1"; failed=1; }
 
-step "competition.sh is generated from src/"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+
+# The APIs template, used by the tests. A clone may leave it out of the working tree (sparse checkout, see
+# docs/development.md): it is then taken from HEAD, in $tmp, and mounted next to the code
+api_template="$REPO_DIR/config/apis/template"
+template_mount=()
+if [ ! -d "$api_template" ]; then
+    git -C "$REPO_DIR" archive HEAD config/apis/template | tar -x -C "$tmp" || exit 1
+    api_template="$tmp/config/apis/template"
+    template_mount=(-v "$api_template:/api-template:ro" -e API_TEMPLATE_DIR=/api-template)
+fi
+
+step "competition.sh is generated from src/"
 cp -r "$REPO_DIR/src" "$REPO_DIR/bashly-settings.yml" "$tmp/"
 if docker run --rm --user "$(id -u):$(id -g)" -v "$tmp:/app" "$BASHLY_IMAGE" generate > /dev/null \
     && cmp -s "$tmp/competition.sh" "$REPO_DIR/competition.sh"; then
@@ -33,7 +44,8 @@ else
 fi
 
 step "PHP syntax (portal, APIs template)"
-if docker run --rm -v "$REPO_DIR:/code:ro" -w /code php:8.3.26-apache sh -c     'find services config/apis/template -name "*.php" -print0 | xargs -0 -n1 php -l > /dev/null'; then
+if docker run --rm -v "$REPO_DIR:/code:ro" -v "$api_template:/api-template:ro" -w /code php:8.3.26-apache sh -c \
+    'find services /api-template -name "*.php" -print0 | xargs -0 -n1 php -l > /dev/null'; then
     ok "no syntax error"
 else
     ko "PHP syntax errors"
@@ -41,7 +53,7 @@ fi
 
 step "bats"
 docker build -q -t "$TESTS_IMAGE" "$REPO_DIR/tests" > /dev/null
-if docker run --rm -v "$REPO_DIR:/code:ro" -w /code "$TESTS_IMAGE" "${@:-tests}"; then
+if docker run --rm -v "$REPO_DIR:/code:ro" "${template_mount[@]}" -w /code "$TESTS_IMAGE" "${@:-tests}"; then
     ok "all tests passed"
 else
     ko "some tests failed"

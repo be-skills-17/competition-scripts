@@ -115,7 +115,7 @@ HOOKS
     # Links (<a href>) are fine; stylesheets, scripts, images, fonts and frames must be served locally
     run sh -c 'find "$@" -type f \( -name "*.html" -o -name "*.php" -o -name "*.css" -o -name "*.js" \) \
         -exec grep -nEi "<(link|script|img|iframe|source)[^>]*(src|href)=[\"'"'"']?(https?:)?//|url\([\"'"'"']?(https?:)?//|@import [\"'"'"']?(https?:)?//" {} +' \
-        sh "$REPO_DIR/services" "$REPO_DIR/config/apis/template"
+        sh "$REPO_DIR/services" "$API_TEMPLATE_DIR"
     echo "$output"
     [ "$status" -eq 1 ]
 }

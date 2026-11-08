@@ -14,8 +14,8 @@ setup() {
 
     # The versioned template (disabled) and an enabled copy of it
     mkdir -p "$CONFIG_DIR/apis"
-    cp -r "$REPO_DIR/config/apis/template" "$CONFIG_DIR/apis/template"
-    cp -r "$REPO_DIR/config/apis/template" "$CONFIG_DIR/apis/products"
+    cp -r "$API_TEMPLATE_DIR" "$CONFIG_DIR/apis/template"
+    cp -r "$API_TEMPLATE_DIR" "$CONFIG_DIR/apis/products"
     edit_api products '.enabled = true | .name = "products" | .host = "{subdomain}-products"'
 }
 
@@ -27,7 +27,7 @@ edit_api() {
 }
 
 @test "the versioned template is disabled" {
-    [ "$(jq -r .enabled "$REPO_DIR/config/apis/template/api.json")" = "false" ]
+    [ "$(jq -r .enabled "$API_TEMPLATE_DIR/api.json")" = "false" ]
 }
 
 @test "only enabled APIs are listed" {

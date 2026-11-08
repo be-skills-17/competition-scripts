@@ -74,8 +74,14 @@ function module_action(array $portal, string $username, string $action, array $f
             return ['error', 'Choisissez un framework de la liste.'];
         }
         $failure = create_repository_from_template($username, $competitor['password'], $template, $module);
-        return $failure === null ? ['ok', "Dépôt $module créé à partir du template $template."]
-            : ['error', "Le dépôt $module n'a pas été créé : $failure"];
+        if ($failure !== null) {
+            return ['error', "Le dépôt $module n'a pas été créé : $failure"];
+        }
+        // The repository exists either way: a failed deployment only waits for the competitor's first push
+        $failure = trigger_deployment($username, $competitor['password'], $module);
+        return $failure === null
+            ? ['ok', "Dépôt $module créé à partir du template $template. Déploiement lancé : le site sera à jour dans quelques minutes."]
+            : ['error', "Dépôt $module créé, mais le déploiement n'a pas été lancé ($failure) : faites un premier push."];
     }
 
     // delete_module: the competitor typed the confirmation word, as on GitHub

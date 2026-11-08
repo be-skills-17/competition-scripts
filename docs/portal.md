@@ -43,9 +43,12 @@ The buttons are in the last column of the modules table. A created repository ha
 (Gitea icon) and a **Supprimer** button (bin icon): the popup asks to type `Valider` (checked by the browser and
 again by the portal), then deletes the repository in Gitea. This cannot be undone.
 
-Both are done with the competitor's own credentials, only for the modules of `config/main.json`. As with "Use this
-template" in Gitea, creating a repository does not run its workflow: the website keeps its current image until
-the competitor's first push.
+Both are done with the competitor's own credentials, only for the modules of `config/main.json`. "Use this
+template" is not a push, so it does not run the repository's workflow (on push to `main`; Gitea 1.21 has no API to
+start a workflow): right after the creation, the portal commits a line break at the end of `README.md` ("Initial
+deployment", a `README.md` with the module's name when the template has none). That commit is a push: the
+workflow builds the image and WUD deploys it, the website is up to date in about a minute. If that commit fails,
+the repository is still created and the message asks for a first push.
 
 ## Provided files
 
@@ -76,7 +79,7 @@ services/85-portal/
     lib/session.php          session cookie, CSRF token, redirect after POST, message shown once (flash)
     lib/auth.php             login / logout / logged-in competitor
     lib/gitea.php            Gitea API with the competitor's own credentials: their repositories, templates,
-                             creation from a template, deletion
+                             creation from a template, first deployment, deletion
     lib/competitor.php       what a logged-in competitor sees (repository state, clone URLs...): templates
                              only display values computed here; module_action() creates / deletes repositories
     lib/api_docs.php         openapi.json of the APIs (config/apis, read-only mount), servers set to the

@@ -71,6 +71,30 @@ function create_repository_from_template(string $username, string $password, str
     };
 }
 
+// Deploy a repository just created from a template: "Use this template" is not a push, so its workflow (on push
+// to main) does not run. A commit through the API is one: add a line break at the end of README.md (created
+// when the template has none). Null when done, otherwise the reason.
+function trigger_deployment(string $username, string $password, string $name): ?string
+{
+    $path = '/repos/' . rawurlencode($username) . '/' . rawurlencode($name) . '/contents/README.md';
+    [$status, $readme] = gitea_request('GET', $path, $username, $password);
+    if ($status === 200) {
+        $body = ['content' => base64_encode(base64_decode($readme['content'] ?? '') . "\n"), 'sha' => $readme['sha'] ?? ''];
+        $method = 'PUT';
+    } elseif ($status === 404) {
+        $body = ['content' => base64_encode('# ' . $name . "\n")];
+        $method = 'POST';
+    } else {
+        return $status === 0 ? 'Gitea ne répond pas.' : 'Gitea a refusé (' . $status . ').';
+    }
+    [$status, $result] = gitea_request($method, $path, $username, $password, $body + ['message' => 'Initial deployment']);
+    return match (true) {
+        in_array($status, [200, 201], true) => null,
+        $status === 0 => 'Gitea ne répond pas.',
+        default => 'Gitea a refusé (' . $status . ')' . (isset($result['message']) ? ' : ' . $result['message'] : '.'),
+    };
+}
+
 // Delete the repository <username>/<name>: null when done, otherwise the reason
 function delete_repository(string $username, string $password, string $name): ?string
 {

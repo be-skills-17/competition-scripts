@@ -59,9 +59,9 @@ portal() {
 
 @test "enabled APIs get each competitor's URL" {
     mkdir -p "$CONFIG_DIR/apis"
-    cp -r "$REPO_DIR/config/apis/template" "$CONFIG_DIR/apis/products"
+    cp -r "$API_TEMPLATE_DIR" "$CONFIG_DIR/apis/products"
     jq '.enabled = true | .name = "products" | .host = "{username}-{subdomain}-products"' \
-        "$REPO_DIR/config/apis/template/api.json" > "$CONFIG_DIR/apis/products/api.json"
+        "$API_TEMPLATE_DIR/api.json" > "$CONFIG_DIR/apis/products/api.json"
     write_portal_config
     [ "$(portal '.competitors.comp02.apis[0].url')" = "https://comp02-beta-products.competition.test/" ]
     # The folder locates its openapi.json in the read-only mount of config/apis

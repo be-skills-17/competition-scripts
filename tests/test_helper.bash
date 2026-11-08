@@ -2,6 +2,8 @@
 # Docker, Gitea and the network are never used: the tests only cover the pure logic.
 
 REPO_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+# config/apis/template, or its copy from HEAD when the clone leaves it out (set by tests/run.sh)
+API_TEMPLATE_DIR=${API_TEMPLATE_DIR:-$REPO_DIR/config/apis/template}
 
 setup_project() {
     BASE_DIR="$BATS_TEST_TMPDIR/project"
