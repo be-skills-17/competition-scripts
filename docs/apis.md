@@ -47,10 +47,12 @@ In the PHP code:
 ## Documentation (Swagger)
 
 Put an OpenAPI description (JSON only) next to `api.json`: `config/apis/<folder>/openapi.json`. The template has an
-example. It is shown with Swagger UI (served locally, nothing loaded from the internet):
+example. A YAML description converts with
+`python3 -c 'import json,sys,yaml; json.dump(yaml.safe_load(open(sys.argv[1])), open(sys.argv[2], "w"), indent=2, ensure_ascii=False)' openapi.yaml openapi.json`. It is shown with Swagger UI (served locally, nothing loaded from the internet):
 - in the **portal** (`https://<domain>/api-docs.php`, logged-in competitors, link in the "API fournies" section):
   the `servers` of the file are replaced by the competitor's own instance, so "Try it out" calls their API and
-  their database only;
+  their database only. The path of the first server is kept: `http://localhost:8080/api` becomes
+  `https://<instance>/api`, for routes under a prefix;
 - in the **dashboard** (`http://localhost:8090/api-docs.html`, "Documentation des API" card): documentation only,
   no "Try it out" and no server.
 

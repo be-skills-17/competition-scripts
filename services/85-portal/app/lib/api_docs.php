@@ -16,13 +16,16 @@ function has_api_docs(array $api): bool
 }
 
 // The API's OpenAPI description, its servers replaced by the competitor's own instance: "Try it out" calls
-// their API and their database only. Null when the file is missing or not valid JSON.
+// their API and their database only. The path of the first declared server is kept (http://localhost:8080/api
+// -> https://<instance>/api), for APIs whose routes are under a prefix. Null when the file is missing or not
+// valid JSON.
 function api_spec(array $api): ?array
 {
     $spec = json_decode((string) @file_get_contents(api_spec_path($api)), true);
     if (!is_array($spec)) {
         return null;
     }
-    $spec['servers'] = [['url' => rtrim($api['url'], '/'), 'description' => 'Votre instance']];
+    $prefix = rtrim((string) parse_url((string) ($spec['servers'][0]['url'] ?? ''), PHP_URL_PATH), '/');
+    $spec['servers'] = [['url' => rtrim($api['url'], '/') . $prefix, 'description' => 'Votre instance']];
     return $spec;
 }
