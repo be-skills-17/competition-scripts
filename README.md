@@ -15,7 +15,7 @@ The environment includes:
 
 ```bash
 sudo ./competition.sh setup          # install Docker, jq, git, curl... (once)
-# edit config/main.json
+cp config/main.json.example config/main.json   # then edit it (not versioned)
 sudo ./competition.sh check-config   # check the configuration
 sudo ./competition.sh init           # create and start everything
 ./competition.sh --help              # every command

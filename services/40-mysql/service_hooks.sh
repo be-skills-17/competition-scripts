@@ -4,6 +4,8 @@
 # competitors.sql is run by the MySQL entrypoint on first start only (empty data directory)
 service_mysql_pre_init() {
     log_info "Generating competitors databases..."
+    # Not versioned (passwords): the folder is missing from a fresh clone
+    mkdir -p "$CONFIG_DIR/mysql"
     : > "$CONFIG_DIR/mysql/competitors.sql"
 
     local user pass module

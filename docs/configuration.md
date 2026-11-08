@@ -1,6 +1,8 @@
 # Configuration
 
-The environment is configured using a JSON file at `config/main.json`. Below is the structure:
+The environment is configured using a JSON file at `config/main.json`. It holds every password and is not
+versioned (`.gitignore`): start from the example, `cp config/main.json.example config/main.json`. Below is the
+structure:
 
 ```json
 {

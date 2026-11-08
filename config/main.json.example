@@ -1,0 +1,15 @@
+{
+  "domain": "local.skill17.com",
+  "enable_https": true,
+  "username": "admin",
+  "password": "change-me",
+  "modules": ["module-a", "module-b"],
+  "frameworks": {
+    "frameworks_repo": "https://github.com/be-skills-17/frameworks-templates.git",
+    "allowed_frameworks": ["laravel", "react", "vanilla", "php", "vuejs", "expressjs"]
+  },
+  "competitors": [
+    { "name": "Competitor 1", "username": "comp01", "password": "change-me-01", "subdomain": "comp01" },
+    { "name": "Competitor 2", "username": "comp02", "password": "change-me-02", "subdomain": "comp02" }
+  ]
+}

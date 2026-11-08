@@ -18,10 +18,17 @@ setup() {
     [ -z "$output" ]
 }
 
-@test "a missing file is reported" {
+@test "the versioned example config is valid" {
+    cp "$REPO_DIR/config/main.json.example" "$CONFIG_DIR/main.json"
+    run validate_configuration
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "a missing file is reported, with the example to copy" {
     rm "$CONFIG_DIR/main.json"
     run validate_configuration
-    [[ "$output" == *"main.json not found"* ]]
+    [[ "$output" == *"main.json not found (copy config/main.json.example"* ]]
 }
 
 @test "invalid JSON is reported" {

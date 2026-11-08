@@ -31,6 +31,13 @@ setup() {
     [ "$output" = "0" ]
 }
 
+@test "mysql pre_init creates config/mysql, missing from a fresh clone (not versioned)" {
+    source "$REPO_DIR/services/40-mysql/service_hooks.sh"
+    rm -rf "$CONFIG_DIR/mysql"
+    service_mysql_pre_init > /dev/null
+    [ -s "$CONFIG_DIR/mysql/competitors.sql" ]
+}
+
 @test "every competitor is processed, the username is shown when name is missing" {
     create_competitor_user() { echo "user $1 $2"; }
     add_competitor_to_team() { :; }

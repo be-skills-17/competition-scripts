@@ -58,7 +58,7 @@ validate_configuration() {
     local config_file=$CONFIG_DIR/main.json
 
     if [ ! -f "$config_file" ]; then
-        echo "$config_file not found"
+        echo "$config_file not found (copy config/main.json.example and edit it)"
         return
     fi
     if ! jq empty "$config_file" 2> /dev/null; then

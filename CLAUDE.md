@@ -27,7 +27,8 @@ src/before.sh             runs after parsing and filters: global --verbose (must
 src/<cmd>_command.sh      one per command (dashes -> underscores: import_frameworks_command.sh)
 src/lib/*.sh              shared functions, bundled into competition.sh by bashly
 services/<NN>-<name>/     compose.yaml + optional service_hooks.sh (hooks ONLY) and lib/*.sh (helpers), loaded at RUNTIME
-config/main.json          competition config (validated by check-config / filter_valid_config)
+config/main.json          competition config (validated by check-config / filter_valid_config), gitignored:
+                          copied from config/main.json.example (credentials)
 config/apis/<dir>/        organizer PHP APIs, gitignored except config/apis/template/ (disabled)
 config/files/             files offered for download in the portal, gitignored except .gitkeep
 data/                     persistent data (bind mounts), root/container-owned

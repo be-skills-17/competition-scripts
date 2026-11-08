@@ -8,7 +8,8 @@ Get your system ready with a single command:
 # Install all dependencies (Docker, jq, git, curl, etc.)
 sudo ./competition.sh setup
 
-# Configure your competition in config/main.json
+# Configure your competition: copy the example, then edit config/main.json (not versioned)
+cp config/main.json.example config/main.json
 # Then initialize the environment
 sudo ./competition.sh init
 ```
