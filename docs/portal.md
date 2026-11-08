@@ -9,7 +9,8 @@ The main domain (`https://<domain>/`) serves a portal for competitors:
   `git clone`; the password is hidden on screen, the copied URL is complete), plus the URLs of the provided APIs. A competitor only ever sees their own
   information;
 - **the documentation of the provided APIs** (Swagger UI, `/api-docs.php`, see [apis.md](apis.md#documentation-swagger));
-- **the creation and deletion of their modules' repositories** (see below).
+- **the creation and deletion of their modules' repositories** (see below);
+- **the files provided to every competitor** (see below).
 
 ## How it works
 
@@ -46,6 +47,18 @@ Both are done with the competitor's own credentials, only for the modules of `co
 template" in Gitea, creating a repository does not run its workflow: the website keeps its current image until
 the competitor's first push.
 
+## Provided files
+
+Files dropped in `config/files/` (a subject, assets... usually `.zip`, but any file works) are listed to every
+logged-in competitor in a "Fichiers fournis" section, with their size and a download button. The section is hidden
+while the folder is empty. The folder is mounted read-only in the portal and read on each request: a file added,
+replaced or removed shows at once, no restart. Hidden files (`.gitkeep`) and subfolders are not listed.
+
+The files are not versioned (`.gitignore`) but are in the backups (`config/`). `/download.php?file=<name>` serves
+only the names listed in the folder (no path traversal) and redirects to the login page when nobody is logged in.
+The files must be readable by Apache (`www-data`): a file readable by root only (`600`) is listed but its
+download fails.
+
 Login: the password is compared with `hash_equals`, a failed attempt waits 0.8 s, the session id is renewed after
 login, forms carry a CSRF token, and the session cookie is `HttpOnly`, `SameSite=Lax` and `Secure` over HTTPS.
 
@@ -68,12 +81,14 @@ services/85-portal/
                              only display values computed here; module_action() creates / deletes repositories
     lib/api_docs.php         openapi.json of the APIs (config/apis, read-only mount), servers set to the
                              competitor's instance
+    lib/files.php            files provided to every competitor (config/files, read-only mount)
     lib/view.php             escaping, render(), versioned asset URLs, icons, copy buttons, section bands
-    templates/               HTML only: layout, login, home, sections/{access,modules,apis}, api-docs
+    templates/               HTML only: layout, login, home, sections/{access,modules,apis,files}, api-docs
   public/                    document root
     index.php                entry point: handles the POSTs (login, logout, create / delete a repository),
                              renders the layout
     api-docs.php             API documentation page (Swagger UI) and ?spec=<name> (the competitor's spec)
+    download.php             download of a provided file (?file=<name>)
     swagger/                 Swagger UI (swagger-ui-dist 5.33.1, Apache 2.0) and its logo
     assets/api-docs.*        API documentation page (does not load portal.css: it would break Swagger UI)
     assets/portal.css        styles
@@ -85,6 +100,9 @@ services/85-portal/
 
 To add a section: compute its values in `competitor_view()` (`lib/competitor.php`), add a template in
 `templates/sections/` and render it from `templates/home.php`. Changing `config/main.json` (competitors, modules): `sudo ./competition.sh recreate portal`.
+
+On an environment started before `config/files/` existed, the portal does not see the folder until
+`sudo ./competition.sh recreate portal`.
 
 ## Existing installation
 

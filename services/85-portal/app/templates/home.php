@@ -15,3 +15,6 @@ render('sections/modules', ['modules' => $me['modules'], 'templates' => $me['tem
 if ($me['apis']) {
     render('sections/apis', ['apis' => $me['apis']]);
 }
+if ($me['files']) {
+    render('sections/files', ['files' => $me['files']]);
+}

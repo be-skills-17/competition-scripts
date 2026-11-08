@@ -18,6 +18,8 @@ services:
       - "${DYNAMIC_DIR}/portal/portal.json:/etc/portal/portal.json:ro"
       # The APIs' openapi.json (API documentation), read live: a change shows at once, without deploy-apis
       - "${CONFIG_DIR}/apis:/etc/portal/apis:ro"
+      # Files provided to every competitor (config/files), listed live: a file dropped there shows at once
+      - "${CONFIG_DIR}/files:/etc/portal/files:ro"
     labels:
       wud.watch: "false"
       traefik.enable: "true"

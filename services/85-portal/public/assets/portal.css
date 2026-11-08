@@ -103,3 +103,5 @@ button.danger:disabled,button.danger:disabled:hover{opacity:.45;cursor:not-allow
 /* Link to the API documentation (sections/apis) */
 .docs-link{display:inline-flex;align-items:center;gap:6px;font-weight:700}
 .docs-link img{width:18px;height:18px}
+/* Provided files (sections/files) */
+td.file-actions{text-align:right}

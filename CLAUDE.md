@@ -29,6 +29,7 @@ src/lib/*.sh              shared functions, bundled into competition.sh by bashl
 services/<NN>-<name>/     compose.yaml + optional service_hooks.sh (hooks ONLY) and lib/*.sh (helpers), loaded at RUNTIME
 config/main.json          competition config (validated by check-config / filter_valid_config)
 config/apis/<dir>/        organizer PHP APIs, gitignored except config/apis/template/ (disabled)
+config/files/             files offered for download in the portal, gitignored except .gitkeep
 data/                     persistent data (bind mounts), root/container-owned
 dynamic/<service>/        files generated for a service (service_dynamic_dir); backed up and cleaned as a whole
 tests/                    run.sh, *.bats, test_helper.bash, fixtures/main.json, Dockerfile (bats + jq + GNU tar)
